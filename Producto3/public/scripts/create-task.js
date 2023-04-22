@@ -151,10 +151,10 @@ form.addEventListener('submit', function (event) {
     // Lapiz edicion
     const botonEditar = tarjeta.querySelector('.editar-tarea');
     botonEditar.addEventListener('click', function () {
-      // Guardar la referencia a la tarjeta que se va a editar
+      
       tarjetaAEditar = tarjeta;
 
-      // Obtener la información de la tarjeta creada
+      
       const titulo = tarjeta.querySelector('.card-title').innerText;
       const desc = tarjeta.querySelector('.card-text').innerText;
       const horaInicioTexto = tarjeta.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
@@ -163,16 +163,16 @@ form.addEventListener('submit', function (event) {
       const ubicacionTexto = tarjeta.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
       const tareaTerminada = tarjeta.querySelector('.form-check-input').checked;
 
-      // Rellenar los campos del modal con la información de la tarjeta
+      
       nombreTarea.value = titulo;
       descripcion.value = desc;
       horaInicio.value = horaInicioTexto;
       horaFinal.value = horaFinalTexto;
       participantes.value = participantesTexto;
       ubicacion.value = ubicacionTexto;
-      //tareaTerminada.checked = tareaTerminada;
       
-      // Mostrar el modal
+      
+      
       const modal = new bootstrap.Modal(document.getElementById("formtask"));
       modal.show();
       

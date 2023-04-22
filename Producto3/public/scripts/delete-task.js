@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.target.matches(".eliminar-tarea")) {
       const card = event.target.closest(".card");
       selectedCard = card;
-      // Mostrar el modal de confirmación de eliminación
+     
       const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
       const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
       eliminarTareaModal.show();
