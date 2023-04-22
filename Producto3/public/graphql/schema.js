@@ -2,6 +2,7 @@ const { GraphQLSchema, GraphQLObjectType } = require("graphql");
 const taskQueries = require("./queries/taskQueries");
 const taskMutations = require("./mutations/taskMutations");
 const weekQueries = require("./queries/weekQueries");
+const weekMutations = require("./mutations/weekMutations");
 
 
 const RootQuery = new GraphQLObjectType({
