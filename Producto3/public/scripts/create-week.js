@@ -75,11 +75,9 @@ export async function graphqlFetch(query, variables = {}) {
     });
 
     const jsonResponse = await response.json();
-
-    // Agregar registro de la respuesta completa
+    
     console.log("Respuesta completa de GraphQL:", jsonResponse);
 
-    // Agrega esta línea para ver si hay errores en la respuesta
     if (jsonResponse.errors) {
       console.error("Errores en la respuesta de GraphQL:", jsonResponse.errors);
     }
@@ -127,7 +125,7 @@ async function saveWeekToServer(name, week, priority, year, description, borderC
 
     console.log("GraphQL query:", query);
     console.log("GraphQL variables:", variables);
-    const response = await graphqlFetch(query, variables); // Reemplazar 'apiFetch' con 'graphqlFetch'
+    const response = await graphqlFetch(query, variables); 
     const createdWeek = response.createWeek;
 
     console.log('Respuesta del servidor al crear la semana:', createdWeek);
@@ -193,7 +191,7 @@ async function createCard(name, week, priority, year, description, color) {
   }
 }
 
-// La función deleteCard elimina una tarjeta del DOM.
+
 function deleteCard(cardContainer) {
   cardContainer.remove();
 }
@@ -206,7 +204,7 @@ function mostrarModal(mensaje) {
 }
   
 
-//Código principal que se ejecuta al cargar la página
+
 
 document.addEventListener("DOMContentLoaded", async () => {
   const confirmBtn = document.getElementById("confirmButton");
@@ -243,33 +241,33 @@ document.addEventListener("DOMContentLoaded", async () => {
       let year = document.getElementById("year").value;
       let description = document.getElementById("description").value;
   
-      // Validar nombre
+      
       if (name.trim() === "") {
         mostrarModal("Por favor ingrese un nombre válido.");
         return;
       }
   
-      // validar Semana
+      
       const weekRegex = /^(0?[1-9]|[1-4][0-9]|5[0-3])$/;
       if (!weekRegex.test(week)) {
         mostrarModal("Por favor ingrese un número de semana válido (entre 01 y 53).");
         return;
       }
   
-      // validar campo de prioridad
+      
       if (![1, 2, 3].includes(priority)) {
         mostrarModal("Por favor seleccione una prioridad válida (Alta, Media o Baja).");
         return;
       }
   
-      // validar campo de año
+      
       const yearRegex = /^\d{4}$/;
       if (!yearRegex.test(year)) {
         mostrarModal("Por favor ingrese un año válido (formato: AAAA).");
         return;
       }
   
-      // Validar descripción
+      
       if (description.trim() === "") {
         mostrarModal("Por favor ingrese una descripción válida.");
         return;
@@ -277,15 +275,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   
       await createCard(name, week, priority, year, description, selectedColor);
   
-      // Actualizar el DOM con la nueva tarjeta
+     
       await loadWeeks();
   
-      // Cerrar el modal
+      
       const nuevaSemanaModal = document.getElementById("nuevaSemanaModal");
       const modal = bootstrap.Modal.getInstance(nuevaSemanaModal);
       modal.hide();
   
-      // Limpiar el formulario
+      
       cardForm.reset();
     } else {
       mostrarModal("Faltan campos por completar");

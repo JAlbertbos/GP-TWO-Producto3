@@ -54,10 +54,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       const eliminarTarjetaBtn = eliminarTarjetaModalEl.querySelector("#eliminarTarjetaBtn");
 
 
-      // Elimina el evento click existente para evitar múltiples clics
+     
       eliminarTarjetaBtn.removeEventListener('click', handleClick);
 
-      // Agrega un nuevo evento click
+     
       eliminarTarjetaBtn.addEventListener("click", handleClick);
 
       async function handleClick() {
