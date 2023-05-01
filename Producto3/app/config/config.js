@@ -54,6 +54,7 @@ type Task {
   type Mutation {
     createWeek(week: WeekInput): Week
     deleteWeek(id: String): Week
+    updateWeek(id: String, week: WeekInput): Week
     createTask(taskData: TaskInput!, weekId: ID!): Task
     updateTask(id: String, task: TaskInput): Task
     deleteTask(id: String): Task
@@ -70,6 +71,7 @@ const resolvers = {
     Mutation: {
       createWeek: (_, { week }) => weeksController.createWeek(week),
       deleteWeek: (_, { id }) => weeksController.deleteWeekById(id), 
+      updateWeek: (_, { id, week }) => weeksController.updateWeek(id, week), 
       createTask: (_, { task }) => tasksController.createTask(task),
       updateTask: (_, { id, task }) => tasksController.updateTask(id, task), 
       deleteTask: (_, { id }) => tasksController.deleteTask(id), 
