@@ -10,6 +10,18 @@ function priorityToString(priority) {
       return "";
   }
 }
+function priorityStringToValue(priorityString) {
+  switch (priorityString) {
+    case "Alta":
+      return "1";
+    case "Media":
+      return "2";
+    case "Baja":
+      return "3";
+    default:
+      return "";
+  }
+}
 
 let tarjetaAEditar;
 
@@ -79,7 +91,7 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
     const variables = {
       week: {
         name,
-        numberWeek: parseInt(week),
+        numberWeek: parseInt(numberWeek),
         priority,
         year: parseInt(year),
         description,
@@ -87,7 +99,7 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
       },
     };
 
-    const response = await graphqlFetch(query, variables); 
+    const response = await graphqlFetch(query, variables);
     const createdWeek = response.createWeek;
 
     if (createdWeek !== null && createdWeek.hasOwnProperty('_id')) {
@@ -123,7 +135,7 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
       <div class="card-body">
         <h5 class="card-title"><b>${name}</b></h5>
         <p class ="card-text">Semana: ${numberWeek}</p>
-        <p class ="card-text">Prioridad: "${priorityText}"</p>
+        <p class="card-text">Prioridad: "${priorityText}"</p>
         <p class ="card-text">Año: ${year}</p>
         <p class ="card-text">Descripcion: ${description}</p>
       </div>
@@ -142,30 +154,61 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
   const mainRow = document.querySelector("main .row");
   mainRow.appendChild(cardContainer);
 
+  const cardValues = {
+    name: cardContainer.querySelector('.card-title').textContent,
+    description: cardContainer.querySelector('.card-text:nth-child(5)').textContent,
+    week: cardContainer.querySelector('.card-text:nth-child(3)').textContent.split(": ")[1],
+    priority: priorityStringToValue(priorityText),
+    year: cardContainer.querySelector('.card-text:nth-child(5)').textContent.split(": ")[1],
+    color: cardContainer.querySelector('.card.shadow-sm.card-square').style.borderColor
+  };
+  
+  function fillModalForm(cardValues) {
+    document.getElementById("name").value = cardValues.name;
+    document.getElementById("description").value = cardValues.description;
+    document.getElementById("week").value = cardValues.week;
+    document.getElementById("priority").value = parseInt(cardValues.priority);
+    document.getElementById("year").value = cardValues.year;
+  
+    // Establecer el color seleccionado
+    const colorCircles = document.querySelectorAll(".circle");
+    colorCircles.forEach(circle => {
+      if (circle.dataset.color === cardValues.color) {
+        circle.classList.add("selected");
+      } else {
+        circle.classList.remove("selected");
+      }
+    });
+  }
+
   const editButton = cardContainer.querySelector(".editar-week");
-editButton.addEventListener("click", async () => {
-  tarjetaAEditar = cardContainer;
+  editButton.addEventListener("click", async () => {
+    tarjetaAEditar = cardContainer;
+    //NO COGE EL DIA Y EL AÑO
+    const cardValues = {
+      name: cardContainer.querySelector('.card-title').textContent,
+      description: cardContainer.querySelector('.card-text:nth-child(5)').textContent,
+      week: cardContainer.querySelector('.card-text:nth-child(3)').textContent.split(": ")[1],
+      priority: priorityStringToValue(priorityText),
+      year: cardContainer.querySelector('.card-text:nth-child(5)').textContent.split(": ")[1],
+      color: cardContainer.querySelector('.card.shadow-sm.card-square').style.borderColor
+    };
+  
+    fillModalForm(cardValues);
+  
+    const modal = new bootstrap.Modal(document.getElementById("nuevaSemanaModal"));
+    modal.show();
+  });
+  
 
-
-const name = cardContainer.querySelector('.card-title');
-const description = cardContainer.querySelector('.card-text');
-const numberWeek = cardContainer.querySelector('.list-group-item:nth-child(1)');
-const color = cardContainer.querySelector('.card shadow-sm card-square');
-const priority = cardContainer.querySelector('.list-group-item:nth-child(2)');
-const year = cardContainer.querySelector('.list-group-item:nth-child(3)');
-
-
-  const modal = new bootstrap.Modal(document.getElementById("formweek"));
-  modal.show();
-});
-
+ 
 }
 
 
 async function createCard(name, numberWeek, priority, year, description, color) {
   const id = await saveWeekToServer(name, numberWeek, priority, year, description, color);
   if (id) {
-    addCardToDOM(id, name, numberWweek, priority, year, description, color);
+    addCardToDOM(id, name, numberWeek, priority, year, description, color);
   }
 }
 
@@ -202,6 +245,7 @@ async function loadWeeks() {
 }
 
 
+
 // Eventos
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -213,75 +257,75 @@ document.addEventListener("DOMContentLoaded", async () => {
   const description = document.querySelector("textarea");
 
   circles.forEach(circle => {
-      circle.addEventListener("click", () => {
-          selectedColor = circle.classList[1];
-          description.style.borderColor = selectedColor;
-      });
+    circle.addEventListener("click", () => {
+      selectedColor = circle.classList[1];
+      description.style.borderColor = selectedColor;
+    });
   });
 
   confirmBtn.addEventListener("click", async (e) => {
     var formulario = document.getElementById("cardForm");
     var inputsRequeridos = formulario.querySelectorAll("[required]");
     var valido = true;
-  
+
     for (var i = 0; i < inputsRequeridos.length; i++) {
       if (!inputsRequeridos[i].value) {
         valido = false;
         break;
       }
     }
-  
+
     if (valido) {
       e.preventDefault();
       let name = document.getElementById("name").value;
-      let numberWeek = document.getElementById("numberWeek").value;
+      let numberWeek = document.getElementById("week").value;
       let priority = parseInt(document.getElementById("priority").value);
       let year = document.getElementById("year").value;
       let description = document.getElementById("description").value;
-  
-      
+
+
       if (name.trim() === "") {
         mostrarModal("Por favor ingrese un nombre válido.");
         return;
       }
-  
-      
+
+
       const weekRegex = /^(0?[1-9]|[1-4][0-9]|5[0-3])$/;
       if (!weekRegex.test(week)) {
         mostrarModal("Por favor ingrese un número de semana válido (entre 01 y 53).");
         return;
       }
-  
-      
+
+
       if (![1, 2, 3].includes(priority)) {
         mostrarModal("Por favor seleccione una prioridad válida (Alta, Media o Baja).");
         return;
       }
-  
-      
+
+
       const yearRegex = /^\d{4}$/;
       if (!yearRegex.test(year)) {
         mostrarModal("Por favor ingrese un año válido (formato: AAAA).");
         return;
       }
-  
-      
+
+
       if (description.trim() === "") {
         mostrarModal("Por favor ingrese una descripción válida.");
         return;
       }
-  
+
       await createCard(name, numberWeek, priority, year, description, selectedColor);
-  
-     
+
+
       await loadWeeks();
-  
-      
+
+
       const nuevaSemanaModal = document.getElementById("nuevaSemanaModal");
       const modal = bootstrap.Modal.getInstance(nuevaSemanaModal);
       modal.hide();
-  
-      
+
+
       cardForm.reset();
     } else {
       mostrarModal("Faltan campos por completar");
