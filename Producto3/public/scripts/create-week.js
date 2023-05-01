@@ -1,3 +1,5 @@
+//Funciones API
+
 function priorityToString(priority) {
   switch (parseInt(priority)) {
     case 1:
@@ -55,6 +57,8 @@ async function graphqlFetch(query, variables = {}) {
     });
 
     const jsonResponse = await response.json();
+    
+    console.log("Respuesta completa de GraphQL:", jsonResponse);
 
     if (jsonResponse.errors) {
       throw new Error(jsonResponse.errors[0].message);
@@ -62,6 +66,10 @@ async function graphqlFetch(query, variables = {}) {
 
     if (!response.ok) {
       throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    if (jsonResponse.errors) {
+      throw new Error(jsonResponse.errors[0].message);
     }
 
     return jsonResponse.data;
@@ -99,10 +107,15 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
       },
     };
 
-    const response = await graphqlFetch(query, variables);
+    console.log("GraphQL query:", query);
+    console.log("GraphQL variables:", variables);
+    const response = await graphqlFetch(query, variables); 
     const createdWeek = response.createWeek;
 
+    console.log('Respuesta del servidor al crear la semana:', createdWeek);
+
     if (createdWeek !== null && createdWeek.hasOwnProperty('_id')) {
+      console.log('Creando respuesta semana:', createdWeek);
       return createdWeek._id;
     } else {
       throw new Error("Error: La respuesta del servidor es nula o no tiene la propiedad _id");
@@ -112,8 +125,54 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
   }
 }
 
+async function updateWeekOnServer(id, name, numberWeek, priority, year, description, borderColor) {
+  try {
+    const query = `
+      mutation UpdateWeek($id: ID!, $week: WeekInput!) {
+        updateWeek(id: $id, week: $week) {
+          _id
+          name
+          numberWeek
+          priority
+          year
+          description
+          borderColor
+        }
+      }
+    `;
 
-// DOM
+    const variables = {
+      week: {
+        _id: id,
+        name,
+        numberWeek: parseInt(numberWeek),
+        priority,
+        year: parseInt(year),
+        description,
+        borderColor,
+      },
+    };
+    
+
+    console.log("GraphQL query:", query);
+    console.log("GraphQL variables:", variables);
+    const response = await graphqlFetch(query, variables);
+    const updatedWeek = response.updateWeek;
+
+    console.log('Respuesta del servidor al actualizar la semana:', updatedWeek);
+
+    if (updatedWeek !== null && updatedWeek.hasOwnProperty('_id')) {
+      console.log('Actualizando semana:', updatedWeek);
+      return updatedWeek._id;
+    } else {
+      throw new Error("Error: La respuesta del servidor es nula o no tiene la propiedad _id");
+    }
+  } catch (error) {
+    console.error('Error al actualizar la semana:', error);
+  }
+}
+
+//DOMsito 
 
 function removeExistingCards() {
   const mainRow = document.querySelector("main .row");
@@ -143,7 +202,7 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
         <a href="./Weektasks.html?weekId=${id}" class="card-link"><i class="bi bi-eye"></i></a>
         <a href="#" class="card-link">
           <i class="bi bi-trash delete-icon" data-bs-toggle="modal" data-bs-target="#eliminarTarjetaModal" data-card="${id}"></i>
-          <button type="button" class="btn btn-link p-0 editar-week"><i class="bi bi-pencil-square text-primary"></i></button>
+          <button type="button" class="btn btn-link p-0 editar-week" data-id="${id}"><i class="bi bi-pencil-square text-primary"></i></button>
         </a>
       </div>
     </div>
@@ -157,16 +216,16 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
   const cardValues = {
     name: cardContainer.querySelector('.card-title').textContent,
     description: cardContainer.querySelector('.card-text:nth-child(5)').textContent,
-    week: cardContainer.querySelector('.card-text:nth-child(3)').textContent.split(": ")[1],
+    numberWeek: cardContainer.querySelector('.card-text:nth-child(2)').textContent.split(": ")[1],
     priority: priorityStringToValue(priorityText),
-    year: cardContainer.querySelector('.card-text:nth-child(5)').textContent.split(": ")[1],
+    year: cardContainer.querySelector('.card-text:nth-child(4)').textContent.split(": ")[1],
     color: cardContainer.querySelector('.card.shadow-sm.card-square').style.borderColor
   };
   
   function fillModalForm(cardValues) {
     document.getElementById("name").value = cardValues.name;
     document.getElementById("description").value = cardValues.description;
-    document.getElementById("week").value = cardValues.week;
+    document.getElementById("numberWeek").value = cardValues.numberWeek;
     document.getElementById("priority").value = parseInt(cardValues.priority);
     document.getElementById("year").value = cardValues.year;
   
@@ -179,18 +238,18 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
         circle.classList.remove("selected");
       }
     });
-  }
+}
 
   const editButton = cardContainer.querySelector(".editar-week");
   editButton.addEventListener("click", async () => {
     tarjetaAEditar = cardContainer;
-    //NO COGE EL DIA Y EL AÑO
+    
     const cardValues = {
       name: cardContainer.querySelector('.card-title').textContent,
       description: cardContainer.querySelector('.card-text:nth-child(5)').textContent,
-      week: cardContainer.querySelector('.card-text:nth-child(3)').textContent.split(": ")[1],
+      numberWeek: cardContainer.querySelector('.card-text:nth-child(2)').textContent.split(": ")[1],
       priority: priorityStringToValue(priorityText),
-      year: cardContainer.querySelector('.card-text:nth-child(5)').textContent.split(": ")[1],
+      year: cardContainer.querySelector('.card-text:nth-child(4)').textContent.split(": ")[1],
       color: cardContainer.querySelector('.card.shadow-sm.card-square').style.borderColor
     };
   
@@ -234,7 +293,7 @@ async function loadWeeks() {
           location
           completed
         }
-      }
+}
     }`;
 
     const data = await graphqlFetch(query);
@@ -243,7 +302,7 @@ async function loadWeeks() {
     console.error('Error al cargar las semanas:', error);
   }
 }
-
+  
 
 
 // Eventos
@@ -257,76 +316,80 @@ document.addEventListener("DOMContentLoaded", async () => {
   const description = document.querySelector("textarea");
 
   circles.forEach(circle => {
-    circle.addEventListener("click", () => {
-      selectedColor = circle.classList[1];
-      description.style.borderColor = selectedColor;
-    });
+      circle.addEventListener("click", () => {
+          selectedColor = circle.classList[1];
+          description.style.borderColor = selectedColor;
+      });
   });
 
   confirmBtn.addEventListener("click", async (e) => {
     var formulario = document.getElementById("cardForm");
     var inputsRequeridos = formulario.querySelectorAll("[required]");
     var valido = true;
-
+  
     for (var i = 0; i < inputsRequeridos.length; i++) {
       if (!inputsRequeridos[i].value) {
         valido = false;
         break;
       }
     }
-
+  
     if (valido) {
       e.preventDefault();
       let name = document.getElementById("name").value;
-      let numberWeek = document.getElementById("week").value;
+      let numberWeek = document.getElementById("numberWeek").value;
       let priority = parseInt(document.getElementById("priority").value);
       let year = document.getElementById("year").value;
       let description = document.getElementById("description").value;
-
-
+  
+      
       if (name.trim() === "") {
         mostrarModal("Por favor ingrese un nombre válido.");
         return;
       }
-
-
+  
+      
       const weekRegex = /^(0?[1-9]|[1-4][0-9]|5[0-3])$/;
-      if (!weekRegex.test(week)) {
+      if (!weekRegex.test(numberWeek)) {
         mostrarModal("Por favor ingrese un número de semana válido (entre 01 y 53).");
         return;
       }
-
-
+  
+      
       if (![1, 2, 3].includes(priority)) {
         mostrarModal("Por favor seleccione una prioridad válida (Alta, Media o Baja).");
         return;
       }
-
-
+  
+      
       const yearRegex = /^\d{4}$/;
       if (!yearRegex.test(year)) {
         mostrarModal("Por favor ingrese un año válido (formato: AAAA).");
         return;
       }
-
-
+  
+      
       if (description.trim() === "") {
         mostrarModal("Por favor ingrese una descripción válida.");
         return;
       }
-
-      await createCard(name, numberWeek, priority, year, description, selectedColor);
-
-
+  
+      if (tarjetaAEditar) {
+        const id = tarjetaAEditar.querySelector(".card").dataset.id;
+        await updateWeekOnServer(id, name, numberWeek, priority, year, description, selectedColor);
+        tarjetaAEditar.remove();
+      } else {
+        await createCard(name, numberWeek, priority, year, description, selectedColor);
+      }
+  
       await loadWeeks();
-
-
+  
       const nuevaSemanaModal = document.getElementById("nuevaSemanaModal");
       const modal = bootstrap.Modal.getInstance(nuevaSemanaModal);
       modal.hide();
-
-
+  
       cardForm.reset();
+      tarjetaAEditar = null;
     } else {
       mostrarModal("Faltan campos por completar");
     }
