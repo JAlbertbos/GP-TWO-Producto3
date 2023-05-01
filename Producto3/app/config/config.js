@@ -14,7 +14,6 @@ type Week {
   borderColor: String
   tasks: [Task]
 }
-
 type Task {
   _id: ID
   name: String 
@@ -45,7 +44,6 @@ type Task {
     completed: Boolean
     week: String
   }
-
   type Query {
     getAllWeeks: [Week]
     getWeekById(id: String): Week
