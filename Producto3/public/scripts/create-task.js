@@ -1,7 +1,44 @@
+async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
+  const query = id ? 'updateTask' : 'createTask';
+  const taskId = id ? `, id: "${id}"` : '';
+  const response = await fetch('/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `
+        mutation {
+          ${query}(input: {
+            name: "${name}"
+            description: "${description}"
+            startTime: "${startTime}"
+            endTime: "${endTime}"
+            participants: "${participants}"
+            location: "${location}"
+            completed: ${completed}
+            day: "${day}"
+            week: "${weekId}"${taskId}
+          }) {
+            id
+          }
+        }
+      `,
+    }),
+  });
+
+  const result = await response.json();
+  return result.data[query].id;
+}
+
+
+
+
 function allowDrop(event) {
   event.preventDefault();
 }
-function drop(event) {
+async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
   
   if (!dropzoneAncestor) {
@@ -9,10 +46,28 @@ function drop(event) {
   }
 
   event.preventDefault();
-  var data = event.dataTransfer.getData("text");
-  var element = document.getElementById(data);
+  const taskId = event.dataTransfer.getData("text");
+  const element = document.getElementById(taskId);
   dropzoneAncestor.appendChild(element);
+
+  const newDay = dropzoneAncestor.closest('.contenedor-dia').getAttribute('data-day');
+  const taskElement = document.getElementById(taskId);
+  const weekId = dropzoneAncestor.closest('.contenedor-semana').getAttribute('data-weekid'); // Obtén el weekId de la semana aquí
+
+  // Obtén los valores actuales de la tarea para actualizar la base de datos
+  const name = taskElement.querySelector('.card-title').innerText;
+  const description = taskElement.querySelector('.card-text').innerText;
+  const startTime = taskElement.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
+  const endTime = taskElement.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
+  const participants = taskElement.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
+  const location = taskElement.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
+  const completedCheckbox = taskElement.querySelector('.form-check-input');
+  const completed = completedCheckbox ? completedCheckbox.checked : false;
+
+  // Aquí se llama a la función para crear o actualizar la tarea en la base de datos
+  await createOrUpdateTask(taskId.replace('tarjeta-', ''), name, description, startTime, endTime, participants, location, completed, newDay, weekId);
 }
+
 
 
 let tarjetaAEditar;
@@ -62,7 +117,7 @@ function validarCampos() {
   return true;
 }
 
-form.addEventListener('submit', function (event) {
+form.addEventListener('submit', async function (event) {
   event.preventDefault();
 
   
@@ -81,10 +136,15 @@ form.addEventListener('submit', function (event) {
 
     
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
+    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, tareaTerminada.checked, newDay, weekId);
+
     modal.hide();
     form.reset();
   } else {
-    
+    const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, tareaTerminada.checked, selectedDay, weekId);
+    tarjeta.setAttribute('data-id', newTaskId);
+    tarjeta.id = `tarjeta-${newTaskId}`;
+
     const tarjeta = document.createElement('div');
     const idTarjeta = Date.now().toString(); 
     tarjeta.id = `tarjeta-${idTarjeta}`; 
