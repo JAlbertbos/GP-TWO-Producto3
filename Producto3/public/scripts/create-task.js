@@ -109,8 +109,10 @@ function createTaskCard(task) {
     </div>
   `;
   tarjeta.setAttribute('draggable', true);
-
+  
   return tarjeta;
+
+  
 }
 
 function allowDrop(event) {
@@ -139,7 +141,8 @@ async function drop(event) {
   const endTime = taskElement.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
   const participants = taskElement.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
   const location = taskElement.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-  const completed = taskElement.querySelector('#tareaTerminada');
+  const completed = taskElement.querySelector('.form-check-input').checked;
+
   
 
 
