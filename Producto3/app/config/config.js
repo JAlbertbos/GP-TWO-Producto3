@@ -50,7 +50,7 @@ type Task {
 
   type Query {
     getAllWeeks: [Week]
-    getWeekById(id: String): Week
+    getWeekById(id: ID): Week
     getAllTasks(weekId: ID!): [Task]
     getTaskById(id: String): Task
   }
