@@ -1,4 +1,6 @@
-import { graphqlFetch } from "./create-week.js";
+
+
+let selectedCard;
 
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
   const query = id ? 'updateTask' : 'createTask';
@@ -109,11 +111,44 @@ function createTaskCard(task) {
     </div>
   `;
   tarjeta.setAttribute('draggable', true);
+  const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
+  botonEliminar.addEventListener('click', async function () {
+  selectedCard = tarjeta;
+  const taskId = selectedCard.getAttribute('data-id');
   
+  const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
+  const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
+  eliminarTareaModal.show();
+});
+
   return tarjeta;
 
   
 }
+
+async function deleteTask(taskId) {
+  const response = await fetch('/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `
+        mutation {
+          deleteTask(id: "${taskId}") {
+            _id
+          }
+        }
+      `,
+    }),
+  });
+
+  const result = await response.json();
+  console.log('Server response:', result);
+  return result.data.deleteTask;
+}
+
 
 function allowDrop(event) {
   event.preventDefault();
@@ -285,12 +320,15 @@ form.addEventListener('submit', async function (event) {
     modal.hide();
     form.reset();
     const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
-    botonEliminar.addEventListener('click', function () {
+    botonEliminar.addEventListener('click', async function () {
       selectedCard = tarjeta;
+      const taskId = selectedCard.getAttribute('data-id');
+      await deleteTask(taskId);
       const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
       const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
       eliminarTareaModal.show();
     });
+    
 
     // Lapiz edicion
     const botonEditar = tarjeta.querySelector('.editar-tarea');
@@ -327,15 +365,16 @@ form.addEventListener('submit', async function (event) {
 
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
-document.getElementById('deleteButton').addEventListener('click', function () {
-  const tarjetaId = selectedCard.getAttribute('data-id');
-  const tarjeta = document.getElementById(`tarjeta-${tarjetaId}`);
+document.getElementById('deleteButton').addEventListener('click', async function () {
+  const taskId = selectedCard.getAttribute('data-id');
+  await deleteTask(taskId); // Elimina la tarea aquí.
+  const tarjeta = document.getElementById(`tarjeta-${taskId}`);
   if (tarjeta) {
     tarjeta.remove();
   }
   const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
   const eliminarTareaModal = bootstrap.Modal.getInstance(eliminarTareaModalEl);
   eliminarTareaModal.hide();
-  selectedCard = null;
 });
+
 loadTasksFromDatabase();

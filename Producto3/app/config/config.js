@@ -78,8 +78,9 @@ const resolvers = {
       const taskWithWeek = { ...taskData, week: weekId };
       return await tasksController.createTask(taskWithWeek);
     },
-    updateTask: (_, { id, task }) => tasksController.updateTask(id, task),
+    updateTask: (_, { id, task }) => tasksController.updateTaskById(id, task),
     deleteTask: (_, { id }) => tasksController.deleteTask(id),
+
   },
 };
 

@@ -38,7 +38,8 @@ exports.updateTaskById = async (id, updatedData) => {
   }
 };
 
-exports.deleteTaskById = async (id) => {
+exports.deleteTask = async (id) => {
+
   try {
     await Task.findByIdAndRemove(id);
   } catch (err) {
