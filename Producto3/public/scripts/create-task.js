@@ -2,7 +2,39 @@ import { graphqlFetch } from "./create-week.js";
 
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
   const query = id ? 'updateTask' : 'createTask';
-  const taskId = id ? `, id: "${id}"` : '';
+const taskId = id ? `, id: "${id}"` : '';
+const response = await fetch('/graphql', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  body: JSON.stringify({
+    query: `
+      mutation {
+        ${query}(taskData: {
+          name: "${name}"
+          description: "${description}"
+          startTime: "${startTime}"
+          endTime: "${endTime}"
+          participants: "${participants}"
+          location: "${location}"
+          completed: ${completed}
+          day: "${day}"
+        }, weekId: "${weekId}"${taskId}) {
+          _id
+        }
+      }
+    `,
+  }),
+});
+
+  const result = await response.json();
+  console.log('Server response:', result);
+  return result.data[query].id;
+}
+
+async function getTasks(weekId) {
   const response = await fetch('/graphql', {
     method: 'POST',
     headers: {
@@ -11,19 +43,17 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
     },
     body: JSON.stringify({
       query: `
-        mutation {
-          ${query}(input: {
-            name: "${name}"
-            description: "${description}"
-            startTime: "${startTime}"
-            endTime: "${endTime}"
-            participants: "${participants}"
-            location: "${location}"
-            completed: ${completed}
-            day: "${day}"
-            week: "${weekId}"${taskId}
-          }) {
-            id
+        query {
+          getAllTasks(weekId: "${weekId}") {
+            _id
+            name
+            description
+            startTime
+            endTime
+            participants
+            location
+            completed
+            day
           }
         }
       `,
@@ -31,11 +61,57 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
   });
 
   const result = await response.json();
-  return result.data[query].id;
+  console.log('Server response:', result);
+  return result.data.getAllTasks;
 }
 
+function addTaskToDOM(taskCard, day) {
+  const dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
+  if (dropzone) {
+    dropzone.appendChild(taskCard);
+  }
+}
 
+async function loadTasksFromDatabase() {
+  const tasks = await getTasks(weekId);
+  for (const task of tasks) {
+    const taskCard = createTaskCard(task);
+    addTaskToDOM(taskCard, task.day);
+  }
+}
 
+function createTaskCard(task) {
+  const tarjeta = document.createElement('div');
+  tarjeta.id = `tarjeta-${task._id}`;
+  tarjeta.classList.add('card', 'my-3', 'draggable');
+  tarjeta.setAttribute('data-id', task._id);
+  tarjeta.innerHTML = `
+    <div class="card-body">
+      <div class="d-flex align-items-center justify-content-between">
+        <h5 class="card-title">${task.name}</h5>
+        <button type="button"  class="btn btn-link p-0 eliminar-tarea">${iconoPapelera.outerHTML}</button>
+      </div>
+      <p class="card-text">${task.description}</p>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item"><strong>Hora de inicio:</strong> ${task.startTime}</li>
+        <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
+        <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
+        <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
+      </ul>
+      <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
+        <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
+      </div>
+      <div class="mt-auto d-flex justify-content-end">
+      <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
+      </div>
+      </div>
+    </div>
+  `;
+  tarjeta.setAttribute('draggable', true);
+
+  return tarjeta;
+}
 
 function allowDrop(event) {
   event.preventDefault();
@@ -70,7 +146,6 @@ async function drop(event) {
   // Aquí se llama a la función para crear o actualizar la tarea en la base de datos
   await createOrUpdateTask(taskId.replace('tarjeta-', ''), name, description, startTime, endTime, participants, location, completed, newDay, weekId);
 }
-
 
 
 let tarjetaAEditar;
@@ -147,13 +222,13 @@ form.addEventListener('submit', async function (event) {
     form.reset();
   } else {
     const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
-    tarjeta.setAttribute('data-id', newTaskId);
-    tarjeta.id = `tarjeta-${newTaskId}`;
 
     const tarjeta = document.createElement('div');
     const idTarjeta = Date.now().toString();
     tarjeta.id = `tarjeta-${idTarjeta}`;
     tarjeta.classList.add('card', 'my-3', 'draggable');
+    tarjeta.setAttribute('data-id', newTaskId);
+    tarjeta.id = `tarjeta-${newTaskId}`;
     tarjeta.innerHTML = `
     <div class="card-body">
       <div class="d-flex align-items-center justify-content-between">
@@ -201,6 +276,7 @@ form.addEventListener('submit', async function (event) {
         tarjeta.classList.remove('borde-verde');
       }
     });
+    
 
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
     modal.hide();
@@ -259,3 +335,4 @@ document.getElementById('deleteButton').addEventListener('click', function () {
   eliminarTareaModal.hide();
   selectedCard = null;
 });
+loadTasksFromDatabase();

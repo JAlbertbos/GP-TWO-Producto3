@@ -51,7 +51,7 @@ type Task {
   type Query {
     getAllWeeks: [Week]
     getWeekById(id: String): Week
-    getAllTasks: [Task]
+    getAllTasks(weekId: ID!): [Task]
     getTaskById(id: String): Task
   }
   
@@ -65,24 +65,23 @@ type Task {
 `;
 
 const resolvers = {
-    Query: {
-      getAllWeeks: () => weeksController.getWeeks(),
-      getWeekById: (_, { id }) => weeksController.getWeekById(id),
-      getAllTasks: () => tasksController.getTasks(),
-      getTaskById: (_, { id }) => tasksController.getTaskById(id),
+  Query: {
+    getAllWeeks: () => weeksController.getWeeks(),
+    getWeekById: (_, { id }) => weeksController.getWeekById(id),
+    getAllTasks: (_, { weekId }) => tasksController.getTasks({ weekId }),
+    getTaskById: (_, { id }) => tasksController.getTaskById(id),
+  },
+  Mutation: {
+    createWeek: (_, { week }) => weeksController.createWeek(week),
+    deleteWeek: (_, { id }) => weeksController.deleteWeekById(id),
+    createTask: async (_, { taskData, weekId }) => {
+      const taskWithWeek = { ...taskData, week: weekId };
+      return await tasksController.createTask(taskWithWeek);
     },
-    Mutation: {
-      createWeek: (_, { week }) => weeksController.createWeek(week),
-      deleteWeek: (_, { id }) => weeksController.deleteWeekById(id), 
-      createTask: async (_, { taskData, weekId }) => {
-        const taskWithWeek = { ...taskData, week: weekId };
-        return await tasksController.createTask(taskWithWeek);
-      },
-      updateTask: (_, { id, task }) => tasksController.updateTask(id, task), 
-      deleteTask: (_, { id }) => tasksController.deleteTask(id), 
-    },
-  };
-  
+    updateTask: (_, { id, task }) => tasksController.updateTask(id, task),
+    deleteTask: (_, { id }) => tasksController.deleteTask(id),
+  },
+};
 
 const mongoURI = 'mongodb+srv://David:1234@agendasemanal.zbsfqm3.mongodb.net/AgendaSemanal';
 const PORT = process.env.PORT || 3000;
