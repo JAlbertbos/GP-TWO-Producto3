@@ -128,7 +128,7 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
 async function updateWeekOnServer(id, name, numberWeek, priority, year, description, borderColor) {
   try {
     const query = `
-      mutation UpdateWeek($id: ID!, $week: WeekInput!) {
+      mutation UpdateWeek($id: ID!, $week: WeekInput) {
         updateWeek(id: $id, week: $week) {
           _id
           name
@@ -142,8 +142,8 @@ async function updateWeekOnServer(id, name, numberWeek, priority, year, descript
     `;
 
     const variables = {
+      id: id,
       week: {
-        _id: id,
         name,
         numberWeek: parseInt(numberWeek),
         priority,
@@ -258,11 +258,8 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
     const modal = new bootstrap.Modal(document.getElementById("nuevaSemanaModal"));
     modal.show();
   });
-  
-
  
 }
-
 
 async function createCard(name, numberWeek, priority, year, description, color) {
   const id = await saveWeekToServer(name, numberWeek, priority, year, description, color);
@@ -303,8 +300,6 @@ async function loadWeeks() {
   }
 }
   
-
-
 // Eventos
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -378,6 +373,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const id = tarjetaAEditar.querySelector(".card").dataset.id;
         await updateWeekOnServer(id, name, numberWeek, priority, year, description, selectedColor);
         tarjetaAEditar.remove();
+        tarjetaAEditar = null;
       } else {
         await createCard(name, numberWeek, priority, year, description, selectedColor);
       }
