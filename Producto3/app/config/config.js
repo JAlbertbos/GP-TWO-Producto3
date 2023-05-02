@@ -73,13 +73,14 @@ const resolvers = {
   Mutation: {
     createWeek: (_, { week }) => weeksController.createWeek(week),
     deleteWeek: (_, { id }) => weeksController.deleteWeekById(id),
+    updateWeek: (_, { id, week }) => weeksController.updateWeekById(id, week), 
     createTask: async (_, { taskData, weekId }) => {
       const taskWithWeek = { ...taskData, week: weekId };
       return await tasksController.createTask(taskWithWeek);
     },
     updateTask: (_, { id, task }) => tasksController.updateTaskById(id, task),
     deleteTask: (_, { id }) => tasksController.deleteTask(id),
-
+  
   },
 };
 
