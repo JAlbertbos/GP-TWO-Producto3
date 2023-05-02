@@ -28,6 +28,15 @@ exports.createWeek = async (weekData) => {
   }
 };
 
+exports.updateWeekById = async (id, updatedData) => {
+  try {
+    return await Week.findByIdAndUpdate(id, updatedData, { new: true });
+  } catch (err) {
+    console.error(err);
+    throw new Error("Error updating week");
+  }
+};
+
 exports.deleteWeekById = async (id) => {
     try {
       return await Week.findByIdAndRemove(id);
