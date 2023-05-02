@@ -1,5 +1,7 @@
 //Funciones API
 
+
+
 function priorityToString(priority) {
   switch (parseInt(priority)) {
     case 1:
@@ -299,3 +301,4 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   loadWeeks();
 });
+

@@ -23,6 +23,7 @@ type Task {
   endTime: String
   participants: String
   location:String
+  day: String
   completed: Boolean
   week: Week
 }
@@ -42,6 +43,7 @@ type Task {
     endTime: String
     participants: String
     location: String
+    day: String
     completed: Boolean
     week: String
   }
@@ -72,7 +74,10 @@ const resolvers = {
     Mutation: {
       createWeek: (_, { week }) => weeksController.createWeek(week),
       deleteWeek: (_, { id }) => weeksController.deleteWeekById(id), 
-      createTask: (_, { task }) => tasksController.createTask(task),
+      createTask: async (_, { taskData, weekId }) => {
+        const taskWithWeek = { ...taskData, week: weekId };
+        return await tasksController.createTask(taskWithWeek);
+      },
       updateTask: (_, { id, task }) => tasksController.updateTask(id, task), 
       deleteTask: (_, { id }) => tasksController.deleteTask(id), 
     },

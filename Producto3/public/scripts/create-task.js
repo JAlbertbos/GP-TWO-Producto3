@@ -1,3 +1,5 @@
+import { graphqlFetch } from "./create-week.js";
+
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
   const query = id ? 'updateTask' : 'createTask';
   const taskId = id ? `, id: "${id}"` : '';
@@ -40,7 +42,7 @@ function allowDrop(event) {
 }
 async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
-  
+
   if (!dropzoneAncestor) {
     return;
   }
@@ -61,8 +63,9 @@ async function drop(event) {
   const endTime = taskElement.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
   const participants = taskElement.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
   const location = taskElement.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-  const completedCheckbox = taskElement.querySelector('.form-check-input');
-  const completed = completedCheckbox ? completedCheckbox.checked : false;
+  const completed = taskElement.querySelector('#tareaTerminada');
+  
+
 
   // Aquí se llama a la función para crear o actualizar la tarea en la base de datos
   await createOrUpdateTask(taskId.replace('tarjeta-', ''), name, description, startTime, endTime, participants, location, completed, newDay, weekId);
@@ -85,9 +88,11 @@ const horaInicio = document.querySelector('#horaInicio');
 const horaFinal = document.querySelector('#horaFinal');
 const participantes = document.querySelector('#participantes');
 const ubicacion = document.querySelector('#ubicacion');
-const tareaTerminada = document.querySelector('#tareaTerminada');
+const completed = document.querySelector('#tareaTerminada');
 const iconoPapelera = document.createElement('i');
 iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
+const urlParams = new URLSearchParams(window.location.search);
+const weekId = urlParams.get('weekId');
 
 
 function validarCampos() {
@@ -120,7 +125,7 @@ function validarCampos() {
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
 
-  
+
   if (!validarCampos()) {
     return;
   }
@@ -134,20 +139,20 @@ form.addEventListener('submit', async function (event) {
 
     tarjetaAEditar = null;
 
-    
+
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
-    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, tareaTerminada.checked, newDay, weekId);
+    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId);
 
     modal.hide();
     form.reset();
   } else {
-    const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, tareaTerminada.checked, selectedDay, weekId);
+    const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
     tarjeta.setAttribute('data-id', newTaskId);
     tarjeta.id = `tarjeta-${newTaskId}`;
 
     const tarjeta = document.createElement('div');
-    const idTarjeta = Date.now().toString(); 
-    tarjeta.id = `tarjeta-${idTarjeta}`; 
+    const idTarjeta = Date.now().toString();
+    tarjeta.id = `tarjeta-${idTarjeta}`;
     tarjeta.classList.add('card', 'my-3', 'draggable');
     tarjeta.innerHTML = `
     <div class="card-body">
@@ -196,7 +201,7 @@ form.addEventListener('submit', async function (event) {
         tarjeta.classList.remove('borde-verde');
       }
     });
-    
+
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
     modal.hide();
     form.reset();
@@ -211,36 +216,36 @@ form.addEventListener('submit', async function (event) {
     // Lapiz edicion
     const botonEditar = tarjeta.querySelector('.editar-tarea');
     botonEditar.addEventListener('click', function () {
-      
+
       tarjetaAEditar = tarjeta;
 
-      
+
       const titulo = tarjeta.querySelector('.card-title').innerText;
       const desc = tarjeta.querySelector('.card-text').innerText;
       const horaInicioTexto = tarjeta.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
       const horaFinalTexto = tarjeta.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
       const participantesTexto = tarjeta.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
       const ubicacionTexto = tarjeta.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-      const tareaTerminada = tarjeta.querySelector('.form-check-input').checked;
+      const completed = tarjeta.querySelector('.form-check-input').checked;
 
-      
+
       nombreTarea.value = titulo;
       descripcion.value = desc;
       horaInicio.value = horaInicioTexto;
       horaFinal.value = horaFinalTexto;
       participantes.value = participantesTexto;
       ubicacion.value = ubicacionTexto;
-      
-      
-      
+
+
+
       const modal = new bootstrap.Modal(document.getElementById("formtask"));
       modal.show();
-      
+
     });
-    
+
     tarjeta.setAttribute('data-id', idTarjeta);
   }
-  
+
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
 document.getElementById('deleteButton').addEventListener('click', function () {
