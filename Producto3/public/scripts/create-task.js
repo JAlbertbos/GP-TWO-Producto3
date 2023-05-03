@@ -153,6 +153,7 @@ async function deleteTask(taskId) {
 function allowDrop(event) {
   event.preventDefault();
 }
+window.allowDrop = allowDrop;
 async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
 
@@ -163,13 +164,11 @@ async function drop(event) {
   event.preventDefault();
   const taskId = event.dataTransfer.getData("text");
   const element = document.getElementById(taskId);
-  dropzoneAncestor.appendChild(element);
 
   const newDay = dropzoneAncestor.closest('.contenedor-dia').getAttribute('data-day');
   const taskElement = document.getElementById(taskId);
-  const weekId = dropzoneAncestor.closest('.contenedor-semana').getAttribute('data-weekid'); // Obtén el weekId de la semana aquí
+  const weekId = dropzoneAncestor.closest('.contenedor-semana').getAttribute('data-weekid');
 
-  // Obtén los valores actuales de la tarea para actualizar la base de datos
   const name = taskElement.querySelector('.card-title').innerText;
   const description = taskElement.querySelector('.card-text').innerText;
   const startTime = taskElement.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
@@ -177,15 +176,16 @@ async function drop(event) {
   const participants = taskElement.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
   const location = taskElement.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
   const completed = taskElement.querySelector('.form-check-input').checked;
-
-  
-
-
-  // Aquí se llama a la función para crear o actualizar la tarea en la base de datos
+ 
   await createOrUpdateTask(taskId.replace('tarjeta-', ''), name, description, startTime, endTime, participants, location, completed, newDay, weekId);
+
+  if (element && element.nodeType === Node.ELEMENT_NODE) {
+    dropzoneAncestor.appendChild(element);
+  } else {
+    console.error(`No se pudo encontrar el elemento con el id ${taskId} o no es un nodo válido.`);
+  }
 }
-
-
+window.drop = drop;
 let tarjetaAEditar;
 let selectedDay;
 document.querySelectorAll('[data-day]').forEach(button => {
