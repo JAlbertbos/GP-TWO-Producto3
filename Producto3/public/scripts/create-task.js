@@ -1,40 +1,41 @@
-
-
 let selectedCard;
+
 
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
   const query = id ? 'updateTask' : 'createTask';
-const taskId = id ? `, id: "${id}"` : '';
-const response = await fetch('/graphql', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  body: JSON.stringify({
-    query: `
-      mutation {
-        ${query}(taskData: {
-          name: "${name}"
-          description: "${description}"
-          startTime: "${startTime}"
-          endTime: "${endTime}"
-          participants: "${participants}"
-          location: "${location}"
-          completed: ${completed}
-          day: "${day}"
-        }, weekId: "${weekId}"${taskId}) {
-          _id
+  const taskId = id ? `, id: "${id}"` : '';
+  const weekIdArg = !id ? `, weekId: "${weekId}"` : '';
+  const response = await fetch('/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `
+        mutation {
+          ${query}(task: {
+            name: "${name}"
+            description: "${description}"
+            startTime: "${startTime}"
+            endTime: "${endTime}"
+            participants: "${participants}"
+            location: "${location}"
+            completed: ${completed}
+            day: "${day}"
+          }${weekIdArg}${taskId}) {
+            _id
+          }
         }
-      }
-    `,
-  }),
-});
+      `,
+    }),
+  });
 
   const result = await response.json();
   console.log('Server response:', result);
   return result.data[query].id;
 }
+
 
 async function getTasks(weekId) {
   const response = await fetch('/graphql', {
@@ -68,17 +69,26 @@ async function getTasks(weekId) {
 }
 
 function addTaskToDOM(taskCard, day) {
-  const dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
+  let dropzone;
+  if (day === 'zone-bottom') {
+    dropzone = document.querySelector('.zone-bottom');
+  } else {
+    dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
+  }
   if (dropzone) {
     dropzone.appendChild(taskCard);
   }
 }
 
+
 async function loadTasksFromDatabase() {
   const tasks = await getTasks(weekId);
   for (const task of tasks) {
     const taskCard = createTaskCard(task);
-    addTaskToDOM(taskCard, task.day);
+    taskCard.addEventListener('dragstart', function (event) {
+      event.dataTransfer.setData('text/plain', this.id);
+    });
+    addTaskToDOM(taskCard, task.day === 'zone-bottom' ? 'zone-bottom' : task.day);
   }
 }
 
@@ -119,6 +129,10 @@ function createTaskCard(task) {
   const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
   const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
   eliminarTareaModal.show();
+
+  tarjeta.addEventListener('dragstart', function (event) {
+    event.dataTransfer.setData('text/plain', this.id);
+  });
 });
 
   return tarjeta;
@@ -153,7 +167,10 @@ async function deleteTask(taskId) {
 function allowDrop(event) {
   event.preventDefault();
 }
+
 window.allowDrop = allowDrop;
+
+
 async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
 
@@ -165,27 +182,41 @@ async function drop(event) {
   const taskId = event.dataTransfer.getData("text");
   const element = document.getElementById(taskId);
 
-  const newDay = dropzoneAncestor.closest('.contenedor-dia').getAttribute('data-day');
-  const taskElement = document.getElementById(taskId);
-  const weekId = dropzoneAncestor.closest('.contenedor-semana').getAttribute('data-weekid');
+  const contenedorDia = dropzoneAncestor.closest('.contenedor-dia');
+  const zoneBottom = dropzoneAncestor.closest('.zone-bottom');
+  
+  let newDay;
 
-  const name = taskElement.querySelector('.card-title').innerText;
-  const description = taskElement.querySelector('.card-text').innerText;
-  const startTime = taskElement.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
-  const endTime = taskElement.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
-  const participants = taskElement.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
-  const location = taskElement.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-  const completed = taskElement.querySelector('.form-check-input').checked;
- 
-  await createOrUpdateTask(taskId.replace('tarjeta-', ''), name, description, startTime, endTime, participants, location, completed, newDay, weekId);
-
-  if (element && element.nodeType === Node.ELEMENT_NODE) {
-    dropzoneAncestor.appendChild(element);
+  if (contenedorDia) {
+    newDay = contenedorDia.getAttribute('data-day');
+  } else if (zoneBottom) {
+    newDay = 'zone-bottom';
   } else {
-    console.error(`No se pudo encontrar el elemento con el id ${taskId} o no es un nodo válido.`);
+    console.error("No se encontró el elemento .contenedor-dia o .zone-bottom");
+    return;
   }
+
+  const taskData = {
+    id: element.getAttribute('data-id'),
+    name: element.querySelector('.card-title').innerText,
+    description: element.querySelector('.card-text').innerText,
+    startTime: element.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', ''),
+    endTime: element.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', ''),
+    participants: element.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', ''),
+    location: element.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', ''),
+    completed: element.querySelector('.form-check-input').checked,
+  };
+
+  await createOrUpdateTask(taskData.id, taskData.name, taskData.description, taskData.startTime, taskData.endTime, taskData.participants, taskData.location, taskData.completed, newDay, weekId);
+
+  dropzoneAncestor.appendChild(element);
 }
+
 window.drop = drop;
+
+
+
+
 let tarjetaAEditar;
 let selectedDay;
 document.querySelectorAll('[data-day]').forEach(button => {
