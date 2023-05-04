@@ -132,21 +132,21 @@ function createTaskCard(task) {
   tarjeta.setAttribute('draggable', true);
   const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
   botonEliminar.addEventListener('click', async function () {
-  selectedCard = tarjeta;
-  const taskId = selectedCard.getAttribute('data-id');
-  
-  const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
-  const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
-  eliminarTareaModal.show();
+    selectedCard = tarjeta;
+    const taskId = selectedCard.getAttribute('data-id');
 
-  tarjeta.addEventListener('dragstart', function (event) {
-    event.dataTransfer.setData('text/plain', this.id);
+    const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
+    const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
+    eliminarTareaModal.show();
+
+    tarjeta.addEventListener('dragstart', function (event) {
+      event.dataTransfer.setData('text/plain', this.id);
+    });
   });
-});
 
   return tarjeta;
 
-  
+
 }
 
 async function deleteTask(taskId) {
@@ -193,7 +193,7 @@ async function drop(event) {
 
   const contenedorDia = dropzoneAncestor.closest('.contenedor-dia');
   const zoneBottom = dropzoneAncestor.closest('.zone-bottom');
-  
+
   let newDay;
 
   if (contenedorDia) {
@@ -301,6 +301,24 @@ form.addEventListener('submit', async function (event) {
   } else {
     const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
 
+  const task = {
+    _id: newTaskId,
+    name: nombreTarea.value,
+    description: descripcion.value,
+    startTime: horaInicio.value,
+    endTime: horaFinal.value,
+    participants: participantes.value,
+    location: ubicacion.value,
+    completed: completed.checked,
+    day: selectedDay,
+  };
+
+  const taskCard = createTaskCard(task);
+  taskCard.addEventListener('dragstart', function (event) {
+    event.dataTransfer.setData('text/plain', this.id);
+  });
+  addTaskToDOM(taskCard, selectedDay);
+
     const tarjeta = document.createElement('div');
     const idTarjeta = Date.now().toString();
     tarjeta.id = `tarjeta-${idTarjeta}`;
@@ -343,9 +361,8 @@ form.addEventListener('submit', async function (event) {
     if (!dropzone) {
       dropzone = document.querySelector('.zone-bottom');
     }
-
-    dropzone.appendChild(tarjeta);
     selectedDay = undefined;
+
     const checkbox = tarjeta.querySelector('.form-check-input');
     checkbox.addEventListener('change', function () {
       if (this.checked) {
@@ -354,7 +371,7 @@ form.addEventListener('submit', async function (event) {
         tarjeta.classList.remove('borde-verde');
       }
     });
-    
+
 
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
     modal.hide();
@@ -368,7 +385,7 @@ form.addEventListener('submit', async function (event) {
       const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
       eliminarTareaModal.show();
     });
-    
+
 
     // Lapiz edicion
     const botonEditar = tarjeta.querySelector('.editar-tarea');
