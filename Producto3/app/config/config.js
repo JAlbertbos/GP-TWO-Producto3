@@ -25,6 +25,7 @@ type Task {
   day: String
   completed: Boolean
   week: Week
+  fileUrl: String
 }
   input WeekInput {
     name: String
@@ -45,6 +46,7 @@ type Task {
     day: String
     completed: Boolean
     week: String
+    fileUrl: String
   }
   type Query {
     getAllWeeks: [Week]

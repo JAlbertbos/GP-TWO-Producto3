@@ -1,8 +1,6 @@
 
 let selectedCard;
-
-
-async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
+async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId, fileUrl) {
   const isUpdating = Boolean(id);
   const query = isUpdating ? 'updateTask' : 'createTask';
   const taskIdArg = isUpdating ? `id: "${id}",` : '';
@@ -27,6 +25,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
             location: "${location}"
             completed: ${completed}
             day: "${day}"
+            fileUrl: "${fileUrl}"
           }${weekIdArg}) {
             _id
           }
@@ -44,8 +43,6 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
 
   return jsonResponse.data[query]._id;
 }
-
-
 
 async function getTasks(weekId) {
   const response = await fetch('/graphql', {
@@ -77,7 +74,6 @@ async function getTasks(weekId) {
   console.log('Server response:', result);
   return result.data.getAllTasks;
 }
-
 function addTaskToDOM(taskCard, day) {
   let dropzone;
   if (day === 'zone-bottom') {
@@ -92,8 +88,6 @@ function addTaskToDOM(taskCard, day) {
     console.error("Dropzone no encontrada");
   }
 }
-
-
 async function loadTasksFromDatabase() {
   const tasks = await getTasks(weekId);
   for (const task of tasks) {
@@ -104,7 +98,6 @@ async function loadTasksFromDatabase() {
     addTaskToDOM(taskCard, task.day === 'zone-bottom' ? 'zone-bottom' : task.day);
   }
 }
-
 function createTaskCard(task) {
   const tarjeta = document.createElement('div');
   tarjeta.id = `tarjeta-${task._id}`;
@@ -122,11 +115,13 @@ function createTaskCard(task) {
         <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
         <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
         <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
+        <li class="list-group-item"><strong>Adjunto:</strong> <a href="${task.fileUrl}" id="adjunto-enlace" target="_blank">Ver archivo</a></li>
       </ul>
       <div class="form-check mt-3">
         <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
         <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
       </div>
+      
       <div class="mt-auto d-flex justify-content-end">
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
@@ -177,7 +172,6 @@ function createTaskCard(task) {
 
 
 }
-
 async function deleteTask(taskId) {
   const response = await fetch('/graphql', {
     method: 'POST',
@@ -200,15 +194,10 @@ async function deleteTask(taskId) {
   console.log('Server response:', result);
   return result.data.deleteTask;
 }
-
-
 function allowDrop(event) {
   event.preventDefault();
 }
-
 window.allowDrop = allowDrop;
-
-
 async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
 
@@ -249,12 +238,7 @@ async function drop(event) {
 
   dropzoneAncestor.appendChild(element);
 }
-
 window.drop = drop;
-
-
-
-
 let tarjetaAEditar;
 let selectedDay;
 document.querySelectorAll('[data-day]').forEach(button => {
@@ -262,7 +246,6 @@ document.querySelectorAll('[data-day]').forEach(button => {
     selectedDay = this.getAttribute('data-day');
   });
 });
-
 const form = document.querySelector('#formtask form');
 const nombreTarea = document.querySelector('#nombreTarea');
 const descripcion = document.querySelector('#descripcion');
@@ -275,11 +258,9 @@ const iconoPapelera = document.createElement('i');
 iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
 const urlParams = new URLSearchParams(window.location.search);
 const weekId = urlParams.get('weekId');
-
-
+const adjunto = document.querySelector("#adjunto");
 function validarCampos() {
   let mensajeError = '';
-
   if (nombreTarea.value.trim() === '') {
     mensajeError = 'El nombre de la tarea no puede estar vacío.';
   } else if (descripcion.value.trim() === '') {
@@ -292,22 +273,18 @@ function validarCampos() {
     mensajeError = 'Los participantes no pueden estar vacíos.';
   } else if (ubicacion.value.trim() === '') {
     mensajeError = 'La ubicación no puede estar vacía.';
-  }
-
-  if (mensajeError) {
+  }if (!adjunto.files || !adjunto.files[0]) {
+    mensajeError = 'Debes seleccionar un archivo.';
+  }else if (mensajeError) {
     document.getElementById('genericModalMessage').innerText = mensajeError;
     const modal = new bootstrap.Modal(document.getElementById('genericModal'));
     modal.show();
     return false;
   }
-
   return true;
 }
-
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
-
-
   if (!validarCampos()) {
     return;
   }
@@ -318,18 +295,13 @@ form.addEventListener('submit', async function (event) {
     tarjetaAEditar.querySelector('.list-group-item:nth-child(2)').innerText = `Hora de final: ${horaFinal.value}`;
     tarjetaAEditar.querySelector('.list-group-item:nth-child(3)').innerText = `Participantes: ${participantes.value}`;
     tarjetaAEditar.querySelector('.list-group-item:nth-child(4)').innerText = `Ubicación: ${ubicacion.value}`;
-
     tarjetaAEditar = null;
-
-
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
-    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId);
-
+    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId, adjunto.files[0]);
     modal.hide();
     form.reset();
   } else {
     const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
-
     const task = {
       _id: newTaskId,
       name: nombreTarea.value,
@@ -340,14 +312,13 @@ form.addEventListener('submit', async function (event) {
       location: ubicacion.value,
       completed: completed.checked,
       day: selectedDay,
+      file: adjunto.files[0]
     };
-
     const taskCard = createTaskCard(task);
     taskCard.addEventListener('dragstart', function (event) {
       event.dataTransfer.setData('text/plain', this.id);
     });
     addTaskToDOM(taskCard, selectedDay);
-
     const tarjeta = document.createElement('div');
     const idTarjeta = Date.now().toString();
     tarjeta.id = `tarjeta-${idTarjeta}`;
@@ -366,6 +337,7 @@ form.addEventListener('submit', async function (event) {
         <li class="list-group-item"><strong>Hora de final:</strong> ${horaFinal.value}</li>
         <li class="list-group-item"><strong>Participantes:</strong> ${participantes.value}</li>
         <li class="list-group-item"><strong>Ubicación:</strong> ${ubicacion.value}</li>
+        <li class="list-group-item"><strong>Adjunto:</strong> <a href="#" id="adjunto-enlace">Ver archivo</a></li>
       </ul>
       <div class="form-check mt-3">
         <input class="form-check-input" type="checkbox" id="tarea-${nombreTarea.value}">
@@ -375,14 +347,12 @@ form.addEventListener('submit', async function (event) {
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
       </div>
-      
     </div>
   `;
     tarjeta.setAttribute('draggable', true);
     tarjeta.addEventListener('dragstart', function (event) {
       event.dataTransfer.setData('text/plain', this.id);
     });
-
     let dropzone;
     if (selectedDay) {
       dropzone = document.querySelector(`.contenedor-dia[data-day="${selectedDay}"] .dropzone`);
@@ -391,7 +361,6 @@ form.addEventListener('submit', async function (event) {
       dropzone = document.querySelector('.zone-bottom');
     }
     selectedDay = undefined;
-
     const checkbox = tarjeta.querySelector('.form-check-input');
     checkbox.addEventListener('change', function () {
       if (this.checked) {
@@ -400,8 +369,6 @@ form.addEventListener('submit', async function (event) {
         tarjeta.classList.remove('borde-verde');
       }
     });
-
-
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
     modal.hide();
     form.reset();
@@ -414,41 +381,28 @@ form.addEventListener('submit', async function (event) {
       const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
       eliminarTareaModal.show();
     });
-
-
     // Lapiz edicion
     const botonEditar = tarjeta.querySelector('.editar-tarea');
     botonEditar.addEventListener('click', function () {
-
       tarjetaAEditar = tarjeta;
-
-
       const titulo = tarjeta.querySelector('.card-title').innerText;
       const desc = tarjeta.querySelector('.card-text').innerText;
       const horaInicioTexto = tarjeta.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
       const horaFinalTexto = tarjeta.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
       const participantesTexto = tarjeta.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
       const ubicacionTexto = tarjeta.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-      const completed = tarjeta.querySelector('.form-check-input').checked;
-
-
+        
       nombreTarea.value = titulo;
       descripcion.value = desc;
       horaInicio.value = horaInicioTexto;
       horaFinal.value = horaFinalTexto;
       participantes.value = participantesTexto;
       ubicacion.value = ubicacionTexto;
-
-
-
       const modal = new bootstrap.Modal(document.getElementById("formtask"));
       modal.show();
-
     });
-
     tarjeta.setAttribute('data-id', idTarjeta);
   }
-
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
 document.getElementById('deleteButton').addEventListener('click', async function () {
@@ -462,5 +416,4 @@ document.getElementById('deleteButton').addEventListener('click', async function
   const eliminarTareaModal = bootstrap.Modal.getInstance(eliminarTareaModalEl);
   eliminarTareaModal.hide();
 });
-
 loadTasksFromDatabase();
