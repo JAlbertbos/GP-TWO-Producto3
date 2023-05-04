@@ -1,3 +1,6 @@
+//ARREGLAR BOOTOM ZONE
+
+
 let selectedCard;
 
 
@@ -84,10 +87,17 @@ function addTaskToDOM(taskCard, day) {
   } else {
     dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
   }
+
   if (dropzone) {
     dropzone.appendChild(taskCard);
+  } else {
+    console.error("Dropzone no encontrada");
   }
 }
+
+
+
+
 
 
 async function loadTasksFromDatabase() {
