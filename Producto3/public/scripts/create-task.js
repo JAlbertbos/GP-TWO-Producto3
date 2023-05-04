@@ -2,9 +2,12 @@ let selectedCard;
 
 
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
-  const query = id ? 'updateTask' : 'createTask';
-  const taskId = id ? `, id: "${id}"` : '';
-  const weekIdArg = !id ? `, weekId: "${weekId}"` : '';
+  const isUpdating = Boolean(id);
+  const query = isUpdating ? 'updateTask' : 'createTask';
+  const taskIdArg = isUpdating ? `id: "${id}",` : '';
+  const weekIdArg = !isUpdating ? `weekId: "${weekId}",` : '';
+  const taskArgName = isUpdating ? 'task' : 'taskData';
+
   const response = await fetch('/graphql', {
     method: 'POST',
     headers: {
@@ -14,7 +17,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
     body: JSON.stringify({
       query: `
         mutation {
-          ${query}(task: {
+          ${query}(${taskIdArg} ${taskArgName}: {
             name: "${name}"
             description: "${description}"
             startTime: "${startTime}"
@@ -23,7 +26,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
             location: "${location}"
             completed: ${completed}
             day: "${day}"
-          }${weekIdArg}${taskId}) {
+          }${weekIdArg}) {
             _id
           }
         }
@@ -31,10 +34,16 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
     }),
   });
 
-  const result = await response.json();
-  console.log('Server response:', result);
-  return result.data[query].id;
+  const jsonResponse = await response.json();
+
+  if (jsonResponse.errors) {
+    console.error("Server response:", jsonResponse);
+    throw new Error(`Error in GraphQL query: ${jsonResponse.errors[0].message}`);
+  }
+
+  return jsonResponse.data[query]._id;
 }
+
 
 
 async function getTasks(weekId) {
