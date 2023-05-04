@@ -1,5 +1,3 @@
-//ARREGLAR BOOTOM ZONE
-
 
 let selectedCard;
 
@@ -96,10 +94,6 @@ function addTaskToDOM(taskCard, day) {
 }
 
 
-
-
-
-
 async function loadTasksFromDatabase() {
   const tasks = await getTasks(weekId);
   for (const task of tasks) {
@@ -153,7 +147,32 @@ function createTaskCard(task) {
       event.dataTransfer.setData('text/plain', this.id);
     });
   });
+  const checkbox = tarjeta.querySelector('.form-check-input');
+  if (task.completed) {
+    checkbox.checked = true;
+    tarjeta.style.borderColor = 'green';
+    tarjeta.style.borderWidth = '2px';
+  }
 
+  // Añadir un nuevo listener para el evento 'change' de la casilla de verificación
+  checkbox.addEventListener('change', async function () {
+    if (this.checked) {
+      tarjeta.style.borderColor = 'green';
+      tarjeta.style.borderWidth = '2px';
+    } else {
+      tarjeta.style.borderColor = '';
+      tarjeta.style.borderWidth = '';
+    }
+
+    // Llamar a createOrUpdateTask para actualizar el campo 'completed' en la base de datos
+    try {
+      const taskId = task._id;
+      const completed = this.checked;
+      await createOrUpdateTask(taskId, task.name, task.description, task.startTime, task.endTime, task.participants, task.location, completed, task.day, null);
+    } catch (error) {
+      console.error('Error al actualizar la tarea:', error);
+    }
+  });
   return tarjeta;
 
 
@@ -311,23 +330,23 @@ form.addEventListener('submit', async function (event) {
   } else {
     const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
 
-  const task = {
-    _id: newTaskId,
-    name: nombreTarea.value,
-    description: descripcion.value,
-    startTime: horaInicio.value,
-    endTime: horaFinal.value,
-    participants: participantes.value,
-    location: ubicacion.value,
-    completed: completed.checked,
-    day: selectedDay,
-  };
+    const task = {
+      _id: newTaskId,
+      name: nombreTarea.value,
+      description: descripcion.value,
+      startTime: horaInicio.value,
+      endTime: horaFinal.value,
+      participants: participantes.value,
+      location: ubicacion.value,
+      completed: completed.checked,
+      day: selectedDay,
+    };
 
-  const taskCard = createTaskCard(task);
-  taskCard.addEventListener('dragstart', function (event) {
-    event.dataTransfer.setData('text/plain', this.id);
-  });
-  addTaskToDOM(taskCard, selectedDay);
+    const taskCard = createTaskCard(task);
+    taskCard.addEventListener('dragstart', function (event) {
+      event.dataTransfer.setData('text/plain', this.id);
+    });
+    addTaskToDOM(taskCard, selectedDay);
 
     const tarjeta = document.createElement('div');
     const idTarjeta = Date.now().toString();
