@@ -1,5 +1,7 @@
 
 let selectedCard;
+// Función para crear o actualizar una tarea en la base de datos
+// Si se pasa un ID, la tarea se actualiza; de lo contrario, se crea una nueva (medio funcionando)
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId, fileUrl) {
   const isUpdating = Boolean(id);
   const query = isUpdating ? 'updateTask' : 'createTask';
@@ -44,6 +46,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
   return jsonResponse.data[query]._id;
 }
 
+// Función para obtener las tareas de la base de datos por ID de semana
 async function getTasks(weekId) {
   const response = await fetch('/graphql', {
     method: 'POST',
@@ -74,6 +77,7 @@ async function getTasks(weekId) {
   console.log('Server response:', result);
   return result.data.getAllTasks;
 }
+// Función para agregar una tarjeta de tarea al DOM en el día correspondiente
 function addTaskToDOM(taskCard, day) {
   let dropzone;
   if (day === 'zone-bottom') {
@@ -88,6 +92,7 @@ function addTaskToDOM(taskCard, day) {
     console.error("Dropzone no encontrada");
   }
 }
+// Función para cargar las tareas de la base de datos y agregarlas al DOM
 async function loadTasksFromDatabase() {
   const tasks = await getTasks(weekId);
   for (const task of tasks) {
@@ -98,6 +103,7 @@ async function loadTasksFromDatabase() {
     addTaskToDOM(taskCard, task.day === 'zone-bottom' ? 'zone-bottom' : task.day);
   }
 }
+// Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 function createTaskCard(task) {
   const tarjeta = document.createElement('div');
   tarjeta.id = `tarjeta-${task._id}`;
@@ -172,6 +178,7 @@ function createTaskCard(task) {
 
 
 }
+// Función para eliminar una tarea de la base de datos por ID
 async function deleteTask(taskId) {
   const response = await fetch('/graphql', {
     method: 'POST',
@@ -194,10 +201,12 @@ async function deleteTask(taskId) {
   console.log('Server response:', result);
   return result.data.deleteTask;
 }
+// Función para permitir soltar elementos en una zona de soltado (dropzone)
 function allowDrop(event) {
   event.preventDefault();
 }
 window.allowDrop = allowDrop;
+// Función para manejar el evento de soltar (drop) de una tarjeta de tarea en una zona de soltado
 async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
 
@@ -240,12 +249,14 @@ async function drop(event) {
 }
 window.drop = drop;
 let tarjetaAEditar;
+// Código para manejar la selección del día en el que se va a agregar o editar una tarea
 let selectedDay;
 document.querySelectorAll('[data-day]').forEach(button => {
   button.addEventListener('click', function () {
     selectedDay = this.getAttribute('data-day');
   });
 });
+
 const form = document.querySelector('#formtask form');
 const nombreTarea = document.querySelector('#nombreTarea');
 const descripcion = document.querySelector('#descripcion');
