@@ -1,41 +1,52 @@
 
-
 let selectedCard;
+// Función para crear o actualizar una tarea en la base de datos
+// Si se pasa un ID, la tarea se actualiza; de lo contrario, se crea una nueva (medio funcionando)
+async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId, fileUrl) {
+  const isUpdating = Boolean(id);
+  const query = isUpdating ? 'updateTask' : 'createTask';
+  const taskIdArg = isUpdating ? `id: "${id}",` : '';
+  const weekIdArg = !isUpdating ? `weekId: "${weekId}",` : '';
+  const taskArgName = isUpdating ? 'task' : 'taskData';
 
-async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
-  const query = id ? 'updateTask' : 'createTask';
-const taskId = id ? `, id: "${id}"` : '';
-const response = await fetch('/graphql', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  body: JSON.stringify({
-    query: `
-      mutation {
-        ${query}(taskData: {
-          name: "${name}"
-          description: "${description}"
-          startTime: "${startTime}"
-          endTime: "${endTime}"
-          participants: "${participants}"
-          location: "${location}"
-          completed: ${completed}
-          day: "${day}"
-        }, weekId: "${weekId}"${taskId}) {
-          _id
+  const response = await fetch('/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      query: `
+        mutation {
+          ${query}(${taskIdArg} ${taskArgName}: {
+            name: "${name}"
+            description: "${description}"
+            startTime: "${startTime}"
+            endTime: "${endTime}"
+            participants: "${participants}"
+            location: "${location}"
+            completed: ${completed}
+            day: "${day}"
+            fileUrl: "${fileUrl}"
+          }${weekIdArg}) {
+            _id
+          }
         }
-      }
-    `,
-  }),
-});
+      `,
+    }),
+  });
 
-  const result = await response.json();
-  console.log('Server response:', result);
-  return result.data[query].id;
+  const jsonResponse = await response.json();
+
+  if (jsonResponse.errors) {
+    console.error("Server response:", jsonResponse);
+    throw new Error(`Error in GraphQL query: ${jsonResponse.errors[0].message}`);
+  }
+
+  return jsonResponse.data[query]._id;
 }
 
+// Función para obtener las tareas de la base de datos por ID de semana
 async function getTasks(weekId) {
   const response = await fetch('/graphql', {
     method: 'POST',
@@ -66,22 +77,33 @@ async function getTasks(weekId) {
   console.log('Server response:', result);
   return result.data.getAllTasks;
 }
-
+// Función para agregar una tarjeta de tarea al DOM en el día correspondiente
 function addTaskToDOM(taskCard, day) {
-  const dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
+  let dropzone;
+  if (day === 'zone-bottom') {
+    dropzone = document.querySelector('.zone-bottom');
+  } else {
+    dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
+  }
+
   if (dropzone) {
     dropzone.appendChild(taskCard);
+  } else {
+    console.error("Dropzone no encontrada");
   }
 }
-
+// Función para cargar las tareas de la base de datos y agregarlas al DOM
 async function loadTasksFromDatabase() {
   const tasks = await getTasks(weekId);
   for (const task of tasks) {
     const taskCard = createTaskCard(task);
-    addTaskToDOM(taskCard, task.day);
+    taskCard.addEventListener('dragstart', function (event) {
+      event.dataTransfer.setData('text/plain', this.id);
+    });
+    addTaskToDOM(taskCard, task.day === 'zone-bottom' ? 'zone-bottom' : task.day);
   }
 }
-
+// Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 function createTaskCard(task) {
   const tarjeta = document.createElement('div');
   tarjeta.id = `tarjeta-${task._id}`;
@@ -99,11 +121,13 @@ function createTaskCard(task) {
         <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
         <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
         <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
+        <li class="list-group-item"><strong>Adjunto:</strong> <a href="${task.fileUrl}" id="adjunto-enlace" target="_blank">Ver archivo</a></li>
       </ul>
       <div class="form-check mt-3">
         <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
         <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
       </div>
+      
       <div class="mt-auto d-flex justify-content-end">
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
@@ -113,19 +137,48 @@ function createTaskCard(task) {
   tarjeta.setAttribute('draggable', true);
   const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
   botonEliminar.addEventListener('click', async function () {
-  selectedCard = tarjeta;
-  const taskId = selectedCard.getAttribute('data-id');
-  
-  const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
-  const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
-  eliminarTareaModal.show();
-});
+    selectedCard = tarjeta;
+    const taskId = selectedCard.getAttribute('data-id');
 
+    const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
+    const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
+    eliminarTareaModal.show();
+
+    tarjeta.addEventListener('dragstart', function (event) {
+      event.dataTransfer.setData('text/plain', this.id);
+    });
+  });
+  const checkbox = tarjeta.querySelector('.form-check-input');
+  if (task.completed) {
+    checkbox.checked = true;
+    tarjeta.style.borderColor = 'green';
+    tarjeta.style.borderWidth = '2px';
+  }
+
+  // Añadir un nuevo listener para el evento 'change' de la casilla de verificación
+  checkbox.addEventListener('change', async function () {
+    if (this.checked) {
+      tarjeta.style.borderColor = 'green';
+      tarjeta.style.borderWidth = '2px';
+    } else {
+      tarjeta.style.borderColor = '';
+      tarjeta.style.borderWidth = '';
+    }
+
+    // Llamar a createOrUpdateTask para actualizar el campo 'completed' en la base de datos
+    try {
+      const taskId = task._id;
+      const completed = this.checked;
+      await createOrUpdateTask(taskId, task.name, task.description, task.startTime, task.endTime, task.participants, task.location, completed, task.day, null);
+    } catch (error) {
+      console.error('Error al actualizar la tarea:', error);
+    }
+  });
   return tarjeta;
 
-  
-}
 
+}
+// Función para eliminar una tarea de la base de datos por ID
 async function deleteTask(taskId) {
   const response = await fetch('/graphql', {
     method: 'POST',
@@ -148,11 +201,12 @@ async function deleteTask(taskId) {
   console.log('Server response:', result);
   return result.data.deleteTask;
 }
-
-
+// Función para permitir soltar elementos en una zona de soltado (dropzone)
 function allowDrop(event) {
   event.preventDefault();
 }
+window.allowDrop = allowDrop;
+// Función para manejar el evento de soltar (drop) de una tarjeta de tarea en una zona de soltado
 async function drop(event) {
   let dropzoneAncestor = event.target.closest('.dropzone');
 
@@ -163,30 +217,39 @@ async function drop(event) {
   event.preventDefault();
   const taskId = event.dataTransfer.getData("text");
   const element = document.getElementById(taskId);
+
+  const contenedorDia = dropzoneAncestor.closest('.contenedor-dia');
+  const zoneBottom = dropzoneAncestor.closest('.zone-bottom');
+
+  let newDay;
+
+  if (contenedorDia) {
+    newDay = contenedorDia.getAttribute('data-day');
+  } else if (zoneBottom) {
+    newDay = 'zone-bottom';
+  } else {
+    console.error("No se encontró el elemento .contenedor-dia o .zone-bottom");
+    return;
+  }
+
+  const taskData = {
+    id: element.getAttribute('data-id'),
+    name: element.querySelector('.card-title').innerText,
+    description: element.querySelector('.card-text').innerText,
+    startTime: element.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', ''),
+    endTime: element.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', ''),
+    participants: element.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', ''),
+    location: element.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', ''),
+    completed: element.querySelector('.form-check-input').checked,
+  };
+
+  await createOrUpdateTask(taskData.id, taskData.name, taskData.description, taskData.startTime, taskData.endTime, taskData.participants, taskData.location, taskData.completed, newDay, weekId);
+
   dropzoneAncestor.appendChild(element);
-
-  const newDay = dropzoneAncestor.closest('.contenedor-dia').getAttribute('data-day');
-  const taskElement = document.getElementById(taskId);
-  const weekId = dropzoneAncestor.closest('.contenedor-semana').getAttribute('data-weekid'); // Obtén el weekId de la semana aquí
-
-  // Obtén los valores actuales de la tarea para actualizar la base de datos
-  const name = taskElement.querySelector('.card-title').innerText;
-  const description = taskElement.querySelector('.card-text').innerText;
-  const startTime = taskElement.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
-  const endTime = taskElement.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
-  const participants = taskElement.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
-  const location = taskElement.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-  const completed = taskElement.querySelector('.form-check-input').checked;
-
-  
-
-
-  // Aquí se llama a la función para crear o actualizar la tarea en la base de datos
-  await createOrUpdateTask(taskId.replace('tarjeta-', ''), name, description, startTime, endTime, participants, location, completed, newDay, weekId);
 }
-
-
+window.drop = drop;
 let tarjetaAEditar;
+// Código para manejar la selección del día en el que se va a agregar o editar una tarea
 let selectedDay;
 document.querySelectorAll('[data-day]').forEach(button => {
   button.addEventListener('click', function () {
@@ -206,11 +269,9 @@ const iconoPapelera = document.createElement('i');
 iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
 const urlParams = new URLSearchParams(window.location.search);
 const weekId = urlParams.get('weekId');
-
-
+const adjunto = document.querySelector("#adjunto");
 function validarCampos() {
   let mensajeError = '';
-
   if (nombreTarea.value.trim() === '') {
     mensajeError = 'El nombre de la tarea no puede estar vacío.';
   } else if (descripcion.value.trim() === '') {
@@ -223,22 +284,18 @@ function validarCampos() {
     mensajeError = 'Los participantes no pueden estar vacíos.';
   } else if (ubicacion.value.trim() === '') {
     mensajeError = 'La ubicación no puede estar vacía.';
-  }
-
-  if (mensajeError) {
+  }if (!adjunto.files || !adjunto.files[0]) {
+    mensajeError = 'Debes seleccionar un archivo.';
+  }else if (mensajeError) {
     document.getElementById('genericModalMessage').innerText = mensajeError;
     const modal = new bootstrap.Modal(document.getElementById('genericModal'));
     modal.show();
     return false;
   }
-
   return true;
 }
-
 form.addEventListener('submit', async function (event) {
   event.preventDefault();
-
-
   if (!validarCampos()) {
     return;
   }
@@ -249,18 +306,30 @@ form.addEventListener('submit', async function (event) {
     tarjetaAEditar.querySelector('.list-group-item:nth-child(2)').innerText = `Hora de final: ${horaFinal.value}`;
     tarjetaAEditar.querySelector('.list-group-item:nth-child(3)').innerText = `Participantes: ${participantes.value}`;
     tarjetaAEditar.querySelector('.list-group-item:nth-child(4)').innerText = `Ubicación: ${ubicacion.value}`;
-
     tarjetaAEditar = null;
-
-
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
-    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId);
-
+    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId, adjunto.files[0]);
     modal.hide();
     form.reset();
   } else {
     const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
-
+    const task = {
+      _id: newTaskId,
+      name: nombreTarea.value,
+      description: descripcion.value,
+      startTime: horaInicio.value,
+      endTime: horaFinal.value,
+      participants: participantes.value,
+      location: ubicacion.value,
+      completed: completed.checked,
+      day: selectedDay,
+      file: adjunto.files[0]
+    };
+    const taskCard = createTaskCard(task);
+    taskCard.addEventListener('dragstart', function (event) {
+      event.dataTransfer.setData('text/plain', this.id);
+    });
+    addTaskToDOM(taskCard, selectedDay);
     const tarjeta = document.createElement('div');
     const idTarjeta = Date.now().toString();
     tarjeta.id = `tarjeta-${idTarjeta}`;
@@ -279,6 +348,7 @@ form.addEventListener('submit', async function (event) {
         <li class="list-group-item"><strong>Hora de final:</strong> ${horaFinal.value}</li>
         <li class="list-group-item"><strong>Participantes:</strong> ${participantes.value}</li>
         <li class="list-group-item"><strong>Ubicación:</strong> ${ubicacion.value}</li>
+        <li class="list-group-item"><strong>Adjunto:</strong> <a href="#" id="adjunto-enlace">Ver archivo</a></li>
       </ul>
       <div class="form-check mt-3">
         <input class="form-check-input" type="checkbox" id="tarea-${nombreTarea.value}">
@@ -288,14 +358,12 @@ form.addEventListener('submit', async function (event) {
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
       </div>
-      
     </div>
   `;
     tarjeta.setAttribute('draggable', true);
     tarjeta.addEventListener('dragstart', function (event) {
       event.dataTransfer.setData('text/plain', this.id);
     });
-
     let dropzone;
     if (selectedDay) {
       dropzone = document.querySelector(`.contenedor-dia[data-day="${selectedDay}"] .dropzone`);
@@ -303,8 +371,6 @@ form.addEventListener('submit', async function (event) {
     if (!dropzone) {
       dropzone = document.querySelector('.zone-bottom');
     }
-
-    dropzone.appendChild(tarjeta);
     selectedDay = undefined;
     const checkbox = tarjeta.querySelector('.form-check-input');
     checkbox.addEventListener('change', function () {
@@ -314,8 +380,6 @@ form.addEventListener('submit', async function (event) {
         tarjeta.classList.remove('borde-verde');
       }
     });
-    
-
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
     modal.hide();
     form.reset();
@@ -328,41 +392,28 @@ form.addEventListener('submit', async function (event) {
       const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
       eliminarTareaModal.show();
     });
-    
-
     // Lapiz edicion
     const botonEditar = tarjeta.querySelector('.editar-tarea');
     botonEditar.addEventListener('click', function () {
-
       tarjetaAEditar = tarjeta;
-
-
       const titulo = tarjeta.querySelector('.card-title').innerText;
       const desc = tarjeta.querySelector('.card-text').innerText;
       const horaInicioTexto = tarjeta.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
       const horaFinalTexto = tarjeta.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
       const participantesTexto = tarjeta.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
       const ubicacionTexto = tarjeta.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-      const completed = tarjeta.querySelector('.form-check-input').checked;
-
-
+        
       nombreTarea.value = titulo;
       descripcion.value = desc;
       horaInicio.value = horaInicioTexto;
       horaFinal.value = horaFinalTexto;
       participantes.value = participantesTexto;
       ubicacion.value = ubicacionTexto;
-
-
-
       const modal = new bootstrap.Modal(document.getElementById("formtask"));
       modal.show();
-
     });
-
     tarjeta.setAttribute('data-id', idTarjeta);
   }
-
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
 document.getElementById('deleteButton').addEventListener('click', async function () {
@@ -376,5 +427,4 @@ document.getElementById('deleteButton').addEventListener('click', async function
   const eliminarTareaModal = bootstrap.Modal.getInstance(eliminarTareaModalEl);
   eliminarTareaModal.hide();
 });
-
 loadTasksFromDatabase();

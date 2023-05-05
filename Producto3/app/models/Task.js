@@ -38,6 +38,9 @@ const TaskSchema = new mongoose.Schema({
     ref: "Week",
     required: true,
   },
+  fileUrl: {
+    type: String,
+  },
 });
 
 module.exports = mongoose.model("Task", TaskSchema);

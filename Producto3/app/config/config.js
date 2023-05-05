@@ -1,7 +1,6 @@
 const tasksController = require('../controllers/TasksController');
 const weeksController = require('../controllers/WeeksController');
 
-
 const typeDefs = `#graphql
 scalar ID
 type Week {
@@ -25,6 +24,7 @@ type Task {
   day: String
   completed: Boolean
   week: Week
+  fileUrl: String
 }
   input WeekInput {
     name: String
@@ -45,6 +45,7 @@ type Task {
     day: String
     completed: Boolean
     week: String
+    fileUrl: String
   }
   type Query {
     getAllWeeks: [Week]
@@ -71,16 +72,21 @@ const resolvers = {
     getTaskById: (_, { id }) => tasksController.getTaskById(id),
   },
   Mutation: {
-    createWeek: (_, { week }) => weeksController.createWeek(week),
-    deleteWeek: (_, { id }) => weeksController.deleteWeekById(id),
-    updateWeek: (_, { id, week }) => weeksController.updateWeekById(id, week), 
+    createWeek: (_, { week }) => {
+      return weeksController.createWeek(week);
+    },
+    deleteWeek: (_, { id }) => {
+      return weeksController.deleteWeekById(id);
+    },
+    updateWeek: (_, { id, week }) => {
+      return weeksController.updateWeekById(id, week);
+    },
     createTask: async (_, { taskData, weekId }) => {
       const taskWithWeek = { ...taskData, week: weekId };
       return await tasksController.createTask(taskWithWeek);
     },
     updateTask: (_, { id, task }) => tasksController.updateTaskById(id, task),
     deleteTask: (_, { id }) => tasksController.deleteTask(id),
-  
   },
 };
 

@@ -1,3 +1,5 @@
+const socket = io();
+
 //Funciones API
 
 function priorityToString(priority) {
@@ -81,95 +83,35 @@ async function graphqlFetch(query, variables = {}) {
 
 
 async function saveWeekToServer(name, numberWeek, priority, year, description, borderColor) {
-  try {
-    const query = `
-      mutation CreateWeek($week: WeekInput!) {
-        createWeek(week: $week) {
-          _id
-          name
-          numberWeek
-          priority
-          year
-          description
-          borderColor
-        }
+  return new Promise((resolve, reject) => {
+    console.log('Enviando petición para crear semana:', { name, numberWeek, priority, year, description, borderColor });
+    socket.emit('createWeek', { name, numberWeek, priority, year, description, borderColor }, (response) => {
+      if (response.error) {
+        console.error('Error al guardar la semana:', response.error);
+        reject(response.error);
+      } else {
+        console.log('Respuesta del servidor al crear la semana:', response.week); 
+        console.log("OK! Tarea creada desde socket.io"); 
+        resolve(response.week._id);
       }
-    `;
-
-    const variables = {
-      week: {
-        name,
-        numberWeek: parseInt(numberWeek),
-        priority,
-        year: parseInt(year),
-        description,
-        borderColor,
-      },
-    };
-
-    console.log("GraphQL query:", query);
-    console.log("GraphQL variables:", variables);
-    const response = await graphqlFetch(query, variables); 
-    const createdWeek = response.createWeek;
-
-    console.log('Respuesta del servidor al crear la semana:', createdWeek);
-
-    if (createdWeek !== null && createdWeek.hasOwnProperty('_id')) {
-      console.log('Creando respuesta semana:', createdWeek);
-      return createdWeek._id;
-    } else {
-      throw new Error("Error: La respuesta del servidor es nula o no tiene la propiedad _id");
-    }
-  } catch (error) {
-    console.error('Error al guardar la semana:', error);
-  }
+    });
+  });
 }
 
+
 async function updateWeekOnServer(id, name, numberWeek, priority, year, description, borderColor) {
-  try {
-    const query = `
-      mutation UpdateWeek($id: ID!, $week: WeekInput) {
-        updateWeek(id: $id, week: $week) {
-          _id
-          name
-          numberWeek
-          priority
-          year
-          description
-          borderColor
-        }
+  return new Promise((resolve, reject) => {
+    console.log('Enviando petición para actualizar semana:', { id, name, numberWeek, priority, year, description, borderColor }); // Agrega esta línea
+    socket.emit('updateWeek', { id, name, numberWeek, priority, year, description, borderColor }, (response) => {
+      if (response.error) {
+        console.error('Error al actualizar la semana:', response.error);
+        reject(response.error);
+      } else {
+        console.log('Respuesta del servidor al actualizar la semana:', response.updatedWeek);
+        resolve(response.updatedWeek._id);
       }
-    `;
-
-    const variables = {
-      id: id,
-      week: {
-        name,
-        numberWeek: parseInt(numberWeek),
-        priority,
-        year: parseInt(year),
-        description,
-        borderColor,
-      },
-    };
-    
-
-    console.log("GraphQL query:", query);
-    console.log("GraphQL variables:", variables);
-    const response = await graphqlFetch(query, variables);
-    const updatedWeek = response.updateWeek;
-
-    console.log('Respuesta del servidor al actualizar la semana:', updatedWeek);
-
-    if (updatedWeek !== null && updatedWeek.hasOwnProperty('_id')) {
-      console.log('Actualizando semana:', updatedWeek);
-      return updatedWeek._id;
-    } else {
-      throw new Error("Error: La respuesta del servidor es nula o no tiene la propiedad _id");
-    }
-  } catch (error) {
-    console.error('Error al actualizar la semana:', error);
-  }
+    });
+  });
 }
 
 //DOMsito 
@@ -186,7 +128,6 @@ function removeExistingCards() {
 async function addCardToDOM(id, name, numberWeek, priority, year, description, color) {
   const cardContainer = document.createElement("div");
   cardContainer.classList.add("col-md-4", "mb-4");
-
   const priorityText = priorityToString(priority);
 
   const card = `
@@ -270,36 +211,22 @@ async function createCard(name, numberWeek, priority, year, description, color) 
 
 
 async function loadWeeks() {
-  try {
-    const query = `{
-      getAllWeeks {
-        _id
-        name
-        numberWeek
-        priority
-        year
-        description
-        borderColor
-        tasks {
-          _id
-          name
-          description
-          startTime
-          endTime
-          participants
-          location
-          completed
-        }
-}
-    }`;
-
-    const data = await graphqlFetch(query);
-    renderWeeks(data.getAllWeeks);
-  } catch (error) {
-    console.error('Error al cargar las semanas:', error);
-  }
-}
+  console.log("loadWeeks() iniciada");
   
+  socket.emit('getAllWeeks', {}, (response) => {
+    console.log("Respuesta de getAllWeeks recibida:", response);
+    
+    if (response.error) {
+      console.error('Error al cargar las semanas:', response.error);
+    } else {
+      console.log("Semanas recibidas:", response.weeks);
+      renderWeeks(response.weeks);
+      console.log("OK! Cargadas semanas desde socket.io");
+    }
+  });
+}
+
+
 // Eventos
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -400,5 +327,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   loadWeeks();
 });
+
+
 
 export { graphqlFetch, renderWeeks };
