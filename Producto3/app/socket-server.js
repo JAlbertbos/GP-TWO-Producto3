@@ -2,7 +2,7 @@ const WeeksController = require('./controllers/WeeksController');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
-    console.log('Client connected');
+    console.log('Cliente -> Conectado');
 
     socket.on('createWeek', async (data, callback) => {
       console.log('Datos recibidos para crear semana:', data);
@@ -10,10 +10,10 @@ function setupSocketIO(io) {
       try {
         const newWeek = await WeeksController.createWeek(data);
         io.sockets.emit('newWeek', newWeek);
-        callback({ success: true, week: newWeek });
+        callback({ success: true, week: newWeek, message: 'OK desde socket!' });
       } catch (error) {
         console.error('Error al crear semana:', error);
-        callback({ success: false, error });
+        callback({ success: false, error, message: 'Error al crear semana' });
       }
     });
 
@@ -23,24 +23,25 @@ function setupSocketIO(io) {
       try {
         const updatedWeek = await WeeksController.updateWeekById(data.id, data.updatedData);
         io.sockets.emit('updatedWeek', updatedWeek);
-        callback({ success: true, week: updatedWeek });
+        callback({ success: true, week: updatedWeek, message: 'OK' });
       } catch (error) {
         console.error('Error al actualizar semana:', error);
-        callback({ success: false, error });
+        callback({ success: false, error, message: 'OK' });
       }
     });
 
-    socket.on('getAllWeeks', async (_, callback) => {
-        try {
-          const weeks = await WeeksController.getWeeks();
-          console.log('Semanas obtenidas del controlador:', weeks);
-          callback({ success: true, weeks });
-        } catch (error) {
+    socket.on('getAllWeeks', (data, callback) => {
+      weekController.getAllWeeks()
+        .then((semanas_obtenidas) => {
+          callback({ message: 'OK', weeks: semanas_obtenidas });
+        })
+        .catch((error) => {
           console.error('Error al obtener semanas:', error);
-          callback({ success: false, error: error.message });
-        }
-      });
+          callback({ error: 'Error al obtener semanas', weeks: [] });
+        });
+    });
 
+    
 
     socket.on('disconnect', () => {
       console.log('Client disconnected');

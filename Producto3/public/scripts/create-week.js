@@ -90,12 +90,14 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
         console.error('Error al guardar la semana:', response.error);
         reject(response.error);
       } else {
-        console.log('Respuesta del servidor al crear la semana:', response.createdWeek);
-        resolve(response.createdWeek._id);
+        console.log('Respuesta del servidor al crear la semana:', response.week); 
+        console.log("OK! Tarea creada desde socket.io"); 
+        resolve(response.week._id);
       }
     });
   });
 }
+
 
 async function updateWeekOnServer(id, name, numberWeek, priority, year, description, borderColor) {
   return new Promise((resolve, reject) => {
@@ -126,8 +128,6 @@ function removeExistingCards() {
 async function addCardToDOM(id, name, numberWeek, priority, year, description, color) {
   const cardContainer = document.createElement("div");
   cardContainer.classList.add("col-md-4", "mb-4");
-  console.log('Agregando tarjeta al DOM:', { id, name, numberWeek, priority, year, description, color }); // Agrega esta línea
-
   const priorityText = priorityToString(priority);
 
   const card = `
@@ -221,10 +221,10 @@ async function loadWeeks() {
     } else {
       console.log("Semanas recibidas:", response.weeks);
       renderWeeks(response.weeks);
+      console.log("OK! Cargadas semanas desde socket.io");
     }
   });
 }
-
 
 
 // Eventos
