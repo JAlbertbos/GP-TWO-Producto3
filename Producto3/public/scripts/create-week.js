@@ -1,4 +1,6 @@
-//Funciones API y otras movidas :
+const socket = io();
+
+//Funciones API
 
 function priorityToString(priority) {
   switch (parseInt(priority)) {
@@ -12,6 +14,20 @@ function priorityToString(priority) {
       return "";
   }
 }
+function priorityStringToValue(priorityString) {
+  switch (priorityString) {
+    case "Alta":
+      return "1";
+    case "Media":
+      return "2";
+    case "Baja":
+      return "3";
+    default:
+      return "";
+  }
+}
+
+let tarjetaAEditar;
 
 function renderWeeks(weeks) {
   removeExistingCards();
@@ -28,39 +44,7 @@ function renderWeeks(weeks) {
   });
 }
 
-async function loadWeeks() {
-  try {
-    const query = `{
-      getAllWeeks {
-        _id
-        name
-        numberWeek
-        priority
-        year
-        description
-        borderColor
-        tasks {
-          _id
-          name
-          description
-          startTime
-          endTime
-          participants
-          location
-          completed
-        }
-      }
-    }`;
-
-    const data = await graphqlFetch(query);
-    renderWeeks(data.getAllWeeks);
-  } catch (error) {
-    console.error('Error al cargar las semanas:', error);
-  }
-}
-
-
-export async function graphqlFetch(query, variables = {}) {
+async function graphqlFetch(query, variables = {}) {
   try {
     const response = await fetch('/graphql', {
       method: 'POST',
@@ -79,7 +63,7 @@ export async function graphqlFetch(query, variables = {}) {
     console.log("Respuesta completa de GraphQL:", jsonResponse);
 
     if (jsonResponse.errors) {
-      console.error("Errores en la respuesta de GraphQL:", jsonResponse.errors);
+      throw new Error(jsonResponse.errors[0].message);
     }
 
     if (!response.ok) {
@@ -96,51 +80,39 @@ export async function graphqlFetch(query, variables = {}) {
     throw error;
   }
 }
-async function saveWeekToServer(name, week, priority, year, description, borderColor) {
-  try {
-    const query = `
-      mutation CreateWeek($week: WeekInput!) {
-        createWeek(week: $week) {
-          _id
-          name
-          numberWeek
-          priority
-          year
-          description
-          borderColor
-        }
+
+
+async function saveWeekToServer(name, numberWeek, priority, year, description, borderColor) {
+  return new Promise((resolve, reject) => {
+    console.log('Enviando petición para crear semana:', { name, numberWeek, priority, year, description, borderColor });
+    socket.emit('createWeek', { name, numberWeek, priority, year, description, borderColor }, (response) => {
+      if (response.error) {
+        console.error('Error al guardar la semana:', response.error);
+        reject(response.error);
+      } else {
+        console.log('Respuesta del servidor al crear la semana:', response.week); 
+        console.log("OK! Tarea creada desde socket.io"); 
+        resolve(response.week._id);
       }
-    `;
-
-    const variables = {
-      week: {
-        name,
-        numberWeek: parseInt(week),
-        priority,
-        year: parseInt(year),
-        description,
-        borderColor,
-      },
-    };
-
-    console.log("GraphQL query:", query);
-    console.log("GraphQL variables:", variables);
-    const response = await graphqlFetch(query, variables); 
-    const createdWeek = response.createWeek;
-
-    console.log('Respuesta del servidor al crear la semana:', createdWeek);
-
-    if (createdWeek !== null && createdWeek.hasOwnProperty('_id')) {
-      console.log('Creando respuesta semana:', createdWeek);
-      return createdWeek._id;
-    } else {
-      console.error("Error: La respuesta del servidor es nula o no tiene la propiedad _id");
-    }
-  } catch (error) {
-    console.error('Error al guardar la semana:', error);
-  }
+    });
+  });
 }
 
+
+async function updateWeekOnServer(id, name, numberWeek, priority, year, description, borderColor) {
+  return new Promise((resolve, reject) => {
+    console.log('Enviando petición para actualizar semana:', { id, name, numberWeek, priority, year, description, borderColor }); // Agrega esta línea
+    socket.emit('updateWeek', { id, name, numberWeek, priority, year, description, borderColor }, (response) => {
+      if (response.error) {
+        console.error('Error al actualizar la semana:', response.error);
+        reject(response.error);
+      } else {
+        console.log('Respuesta del servidor al actualizar la semana:', response.updatedWeek);
+        resolve(response.updatedWeek._id);
+      }
+    });
+  });
+}
 
 //DOMsito 
 
@@ -153,19 +125,17 @@ function removeExistingCards() {
 }
 
 
-
-async function addCardToDOM(id, name, week, priority, year, description, color) {
+async function addCardToDOM(id, name, numberWeek, priority, year, description, color) {
   const cardContainer = document.createElement("div");
   cardContainer.classList.add("col-md-4", "mb-4");
-
   const priorityText = priorityToString(priority);
 
   const card = `
     <div class="card shadow-sm card-square" data-id="${id}" style="border-color: ${color}">
       <div class="card-body">
         <h5 class="card-title"><b>${name}</b></h5>
-        <p class ="card-text">Semana: ${week}</p>
-        <p class ="card-text">Prioridad: "${priorityText}"</p>
+        <p class ="card-text">Semana: ${numberWeek}</p>
+        <p class="card-text">Prioridad: "${priorityText}"</p>
         <p class ="card-text">Año: ${year}</p>
         <p class ="card-text">Descripcion: ${description}</p>
       </div>
@@ -173,6 +143,7 @@ async function addCardToDOM(id, name, week, priority, year, description, color) 
         <a href="./Weektasks.html?weekId=${id}" class="card-link"><i class="bi bi-eye"></i></a>
         <a href="#" class="card-link">
           <i class="bi bi-trash delete-icon" data-bs-toggle="modal" data-bs-target="#eliminarTarjetaModal" data-card="${id}"></i>
+          <button type="button" class="btn btn-link p-0 editar-week" data-id="${id}"><i class="bi bi-pencil-square text-primary"></i></button>
         </a>
       </div>
     </div>
@@ -182,29 +153,81 @@ async function addCardToDOM(id, name, week, priority, year, description, color) 
 
   const mainRow = document.querySelector("main .row");
   mainRow.appendChild(cardContainer);
+
+  const cardValues = {
+    name: cardContainer.querySelector('.card-title').textContent,
+    description: cardContainer.querySelector('.card-text:nth-child(5)').textContent,
+    numberWeek: cardContainer.querySelector('.card-text:nth-child(2)').textContent.split(": ")[1],
+    priority: priorityStringToValue(priorityText),
+    year: cardContainer.querySelector('.card-text:nth-child(4)').textContent.split(": ")[1],
+    color: cardContainer.querySelector('.card.shadow-sm.card-square').style.borderColor
+  };
+  
+  function fillModalForm(cardValues) {
+    document.getElementById("name").value = cardValues.name;
+    document.getElementById("description").value = cardValues.description;
+    document.getElementById("numberWeek").value = cardValues.numberWeek;
+    document.getElementById("priority").value = parseInt(cardValues.priority);
+    document.getElementById("year").value = cardValues.year;
+  
+    // Establecer el color seleccionado
+    const colorCircles = document.querySelectorAll(".circle");
+    colorCircles.forEach(circle => {
+      if (circle.dataset.color === cardValues.color) {
+        circle.classList.add("selected");
+      } else {
+        circle.classList.remove("selected");
+      }
+    });
 }
 
-async function createCard(name, week, priority, year, description, color) {
-  const id = await saveWeekToServer(name, week, priority, year, description, color);
+  const editButton = cardContainer.querySelector(".editar-week");
+  editButton.addEventListener("click", async () => {
+    tarjetaAEditar = cardContainer;
+    
+    const cardValues = {
+      name: cardContainer.querySelector('.card-title').textContent,
+      description: cardContainer.querySelector('.card-text:nth-child(5)').textContent,
+      numberWeek: cardContainer.querySelector('.card-text:nth-child(2)').textContent.split(": ")[1],
+      priority: priorityStringToValue(priorityText),
+      year: cardContainer.querySelector('.card-text:nth-child(4)').textContent.split(": ")[1],
+      color: cardContainer.querySelector('.card.shadow-sm.card-square').style.borderColor
+    };
+  
+    fillModalForm(cardValues);
+  
+    const modal = new bootstrap.Modal(document.getElementById("nuevaSemanaModal"));
+    modal.show();
+  });
+ 
+}
+
+async function createCard(name, numberWeek, priority, year, description, color) {
+  const id = await saveWeekToServer(name, numberWeek, priority, year, description, color);
   if (id) {
-    addCardToDOM(id, name, week, priority, year, description, color);
+    addCardToDOM(id, name, numberWeek, priority, year, description, color);
   }
 }
 
 
-function deleteCard(cardContainer) {
-  cardContainer.remove();
-}
-
-function mostrarModal(mensaje) {
-  const modal = new bootstrap.Modal(document.getElementById("genericModal"));
-  const mensajeModal = document.getElementById("genericModalMessage");
-  mensajeModal.innerText = mensaje;
-  modal.show();
-}
+async function loadWeeks() {
+  console.log("loadWeeks() iniciada");
   
+  socket.emit('getAllWeeks', {}, (response) => {
+    console.log("Respuesta de getAllWeeks recibida:", response);
+    
+    if (response.error) {
+      console.error('Error al cargar las semanas:', response.error);
+    } else {
+      console.log("Semanas recibidas:", response.weeks);
+      renderWeeks(response.weeks);
+      console.log("OK! Cargadas semanas desde socket.io");
+    }
+  });
+}
 
 
+// Eventos
 
 document.addEventListener("DOMContentLoaded", async () => {
   const confirmBtn = document.getElementById("confirmButton");
@@ -236,7 +259,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (valido) {
       e.preventDefault();
       let name = document.getElementById("name").value;
-      let week = document.getElementById("week").value;
+      let numberWeek = document.getElementById("numberWeek").value;
       let priority = parseInt(document.getElementById("priority").value);
       let year = document.getElementById("year").value;
       let description = document.getElementById("description").value;
@@ -249,7 +272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   
       
       const weekRegex = /^(0?[1-9]|[1-4][0-9]|5[0-3])$/;
-      if (!weekRegex.test(week)) {
+      if (!weekRegex.test(numberWeek)) {
         mostrarModal("Por favor ingrese un número de semana válido (entre 01 y 53).");
         return;
       }
@@ -273,18 +296,23 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
   
-      await createCard(name, week, priority, year, description, selectedColor);
+      if (tarjetaAEditar) {
+        const id = tarjetaAEditar.querySelector(".card").dataset.id;
+        await updateWeekOnServer(id, name, numberWeek, priority, year, description, selectedColor);
+        tarjetaAEditar.remove();
+        tarjetaAEditar = null;
+      } else {
+        await createCard(name, numberWeek, priority, year, description, selectedColor);
+      }
   
-     
       await loadWeeks();
   
-      
       const nuevaSemanaModal = document.getElementById("nuevaSemanaModal");
       const modal = bootstrap.Modal.getInstance(nuevaSemanaModal);
       modal.hide();
   
-      
       cardForm.reset();
+      tarjetaAEditar = null;
     } else {
       mostrarModal("Faltan campos por completar");
     }
@@ -299,3 +327,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   loadWeeks();
 });
+
+
+
+export { graphqlFetch, renderWeeks };

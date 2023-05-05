@@ -29,10 +29,17 @@ const TaskSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  day: {
+    type: String,
+    required: true,
+  },
   week: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Week",
     required: true,
+  },
+  fileUrl: {
+    type: String,
   },
 });
 

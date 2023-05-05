@@ -10,23 +10,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 `;
-  
+
       const variables = {
         id,
       };
-  
+
       console.log('Variables enviadas:', variables);
-  
+
       const response = await graphqlFetch(query, variables);
       const deletedWeek = response.deleteWeek;
-  
+
       console.log('Semana eliminada:', deletedWeek);
-  
+
+      // Emitir evento "deleteWeek" a través de Socket.IO
+      const socket = io();
+      socket.emit("deleteWeek", id);
+
     } catch (error) {
       console.error("Error al eliminar la semana:", error);
     }
   }
-  
 
   async function deleteCard(id) {
     const cardContainers = document.querySelectorAll(".col-md-4.mb-4");
@@ -53,25 +56,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       const eliminarTarjetaBtn = eliminarTarjetaModalEl.querySelector("#eliminarTarjetaBtn");
 
-
-     
       eliminarTarjetaBtn.removeEventListener('click', handleClick);
 
-     
       eliminarTarjetaBtn.addEventListener("click", handleClick);
 
       async function handleClick() {
         await deleteWeekFromServer(weekId);
         deleteCard(weekId);
-  
+
         const backdrop = document.querySelector('.modal-backdrop');
         if (backdrop) {
           backdrop.remove();
         }
         eliminarTarjetaModal.hide();
       }
-  
+
       eliminarTarjetaModal.show();
-}
-});
+    }
   });
+});
