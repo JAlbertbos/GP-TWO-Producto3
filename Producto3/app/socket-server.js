@@ -31,7 +31,7 @@ function setupSocketIO(io) {
     });
 
     socket.on('getAllWeeks', (data, callback) => {
-      weekController.getAllWeeks()
+      WeeksController.getAllWeeks()
         .then((semanas_obtenidas) => {
           callback({ message: 'OK', weeks: semanas_obtenidas });
         })

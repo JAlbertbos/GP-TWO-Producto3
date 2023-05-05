@@ -1,3 +1,15 @@
+function allowDrop(event) {
+  event.preventDefault();
+}
+function drop(event) {
+  let dropzoneAncestor = event.target.closest('.dropzone');
+  
+  if (!dropzoneAncestor) {
+    return;
+  };
+}
+
+
 
 let selectedCard;
 // Función para crear o actualizar una tarea en la base de datos
