@@ -225,6 +225,8 @@ async function loadWeeks() {
   });
 }
 
+
+
 // Eventos
 
 document.addEventListener("DOMContentLoaded", async () => {
