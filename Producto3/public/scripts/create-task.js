@@ -1,14 +1,3 @@
-function allowDrop(event) {
-  event.preventDefault();
-}
-function drop(event) {
-  let dropzoneAncestor = event.target.closest('.dropzone');
-  
-  if (!dropzoneAncestor) {
-    return;
-  };
-}
-
 
 
 let selectedCard;
@@ -100,8 +89,8 @@ function addTaskToDOM(taskCard, day) {
 
   if (dropzone) {
     dropzone.appendChild(taskCard);
-  } else {
-    console.error("Dropzone no encontrada");
+  // } else {
+  //   console.error("Dropzone no encontrada");
   }
 }
 // Función para cargar las tareas de la base de datos y agregarlas al DOM
