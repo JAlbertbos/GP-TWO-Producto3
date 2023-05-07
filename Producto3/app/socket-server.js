@@ -30,12 +30,12 @@ function setupSocketIO(io) {
       }
     });
 
-    socket.on('getAllWeeks', (data, callback) => {
-      weekController.getAllWeeks()
-        .then((semanas_obtenidas) => {
-          callback({ message: 'OK', weeks: semanas_obtenidas });
-        })
-        .catch((error) => {
+    socket.on('getAllWeeks', async (_, callback) => {
+        try {
+          const weeks = await WeeksController.getWeeks();
+          console.log('Semanas obtenidas del controlador:', weeks);
+          callback({ success: true, weeks });
+        } catch (error) {
           console.error('Error al obtener semanas:', error);
           callback({ success: false, error: error.message });
         }
