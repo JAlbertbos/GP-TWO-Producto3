@@ -154,9 +154,8 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
       </div>
       <div class="card-icons d-flex justify-content-between position-absolute bottom-0 start-0 end-0">
         <a href="./Weektasks.html?weekId=${id}" class="card-link"><i class="bi bi-eye"></i></a>
-        <a href="#" class="card-link">
-          <i class="bi bi-trash delete-icon" data-bs-toggle="modal" data-bs-target="#eliminarTarjetaModal" data-card="${id}"></i>
-          <button type="button" class="btn btn-link p-0 editar-week" data-id="${id}"><i class="bi bi-pencil-square text-primary"></i></button>
+        <a href="#" class="card-link"><i class="bi bi-trash delete-icon" data-bs-toggle="modal" data-bs-target="#eliminarTarjetaModal" data-card="${id}"></i>
+        <a href="#" class="card-link btn btn-link p-0 editar-week " data-id="${id}"><i class="bi bi-pencil-square "></i></a>
         </a>
       </div>
     </div>

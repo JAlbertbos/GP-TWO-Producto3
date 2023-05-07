@@ -1,80 +1,52 @@
-
+const socket = io();
 let selectedCard;
 
-async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId, fileUrl) {
-  const isUpdating = Boolean(id);
-  const query = isUpdating ? 'updateTask' : 'createTask';
-  const taskIdArg = isUpdating ? `id: "${id}",` : '';
-  const weekIdArg = !isUpdating ? `weekId: "${weekId}",` : '';
-  const taskArgName = isUpdating ? 'task' : 'taskData';
+// Función para crear o actualizar una tarea usando Socket.IO
+async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
+  const taskData = {
+    id,
+    name,
+    description,
+    startTime,
+    endTime,
+    participants,
+    location,
+    completed,
+    day,
+    weekId,
+  };
 
-  const response = await fetch('/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        mutation {
-          ${query}(${taskIdArg} ${taskArgName}: {
-            name: "${name}"
-            description: "${description}"
-            startTime: "${startTime}"
-            endTime: "${endTime}"
-            participants: "${participants}"
-            location: "${location}"
-            completed: ${completed}
-            day: "${day}"
-            fileUrl: "${fileUrl}"
-          }${weekIdArg}) {
-            _id
-          }
-        }
-      `,
-    }),
-  });
-
-  const jsonResponse = await response.json();
-
-  if (jsonResponse.errors) {
-    console.error("Server response:", jsonResponse);
-    throw new Error(`Error in GraphQL query: ${jsonResponse.errors[0].message}`);
+  if (!id) {
+    socket.emit('createTask', taskData, (response) => {
+      if (response.success) {
+        console.log('Tarea creada con éxito');
+      } else {
+        console.error('Error al crear tarea:', response.error);
+      }
+    });
+  } else {
+    socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
+      if (response.success) {
+        console.log('Tarea actualizada con éxito');
+      } else {
+        console.error('Error al actualizar tarea:', response.error);
+      }
+    });
   }
-
-  return jsonResponse.data[query]._id;
 }
-
-// Función para obtener las tareas de la base de datos por ID de semana
+// Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
-  const response = await fetch('/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        query {
-          getAllTasks(weekId: "${weekId}") {
-            _id
-            name
-            description
-            startTime
-            endTime
-            participants
-            location
-            completed
-            day
-          }
-        }
-      `,
-    }),
+  return new Promise((resolve, reject) => {
+    socket.emit('getAllTasks', { weekId }, (response) => {
+      if (response.success) {
+        console.log('Carga del servidor:', response);
+        resolve(response.tasks);
+      } else {
+        console.error("Carga del servidor:", response);
+        reject(new Error(`Error en getAllTasks: ${response.error}`));
+      }
+    });
   });
-
-  const result = await response.json();
-  console.log('Server response:', result);
-  return result.data.getAllTasks;
 }
 // Función para agregar una tarjeta de tarea al DOM en el día correspondiente
 function addTaskToDOM(taskCard, day) {
@@ -125,7 +97,6 @@ function createTaskCard(task) {
         <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
         <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
       </div>
-      
       <div class="mt-auto d-flex justify-content-end">
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
@@ -184,29 +155,21 @@ function createTaskCard(task) {
 
   
 }
-// Función para eliminar una tarea de la base de datos por ID
+// Función para eliminar una tarea de la base de datos por ID usando Socket.IO
 async function deleteTask(taskId) {
-  const response = await fetch('/graphql', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      query: `
-        mutation {
-          deleteTask(id: "${taskId}") {
-            _id
-          }
-        }
-      `,
-    }),
+  return new Promise((resolve, reject) => {
+    socket.emit('deleteTask', { id: taskId }, (response) => {
+      if (response.success) {
+        console.log('Server response:', response);
+        resolve(response);
+      } else {
+        console.error("Server response:", response);
+        reject(new Error(`Error in deleteTask: ${response.error}`));
+      }
+    });
   });
-
-  const result = await response.json();
-  console.log('Server response:', result);
-  return result.data.deleteTask;
 }
+
 // Función para permitir soltar elementos en una zona de soltado (dropzone)
 function allowDrop(event) {
   event.preventDefault();
@@ -255,7 +218,7 @@ async function drop(event) {
 }
 window.drop = drop;
 let tarjetaAEditar;
-// Código para manejar la selección del día en el que se va a agregar o editar una tarea
+
 let selectedDay;
 document.querySelectorAll('[data-day]').forEach(button => {
   button.addEventListener('click', function () {
