@@ -1,4 +1,4 @@
-const WeeksController = require('./controllers/WeeksController');
+const weeksController = require('./controllers/WeeksController');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -31,14 +31,14 @@ function setupSocketIO(io) {
     });
 
     socket.on('getAllWeeks', (data, callback) => {
-      WeeksController.getAllWeeks()
-      .then((semanas_obtenidas) => {
-        callback({ message: 'OK', weeks: semanas_obtenidas });
-      })
-      .catch((error) => {
-        console.error('Error al obtener semanas:', error);
-        callback({ error: 'Error al obtener semanas', weeks: [] });
-      });
+      weeksController.getWeeks()
+        .then((semanas_obtenidas) => {
+          callback({ message: 'OK', weeks: semanas_obtenidas });
+        })
+        .catch((error) => {
+          console.error('Error al obtener semanas:', error);
+          callback({ error: 'Error al obtener semanas', weeks: [] });
+        });
     });
 
     
