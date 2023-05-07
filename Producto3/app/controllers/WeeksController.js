@@ -1,6 +1,6 @@
 const Week = require("../models/Week");
 
-exports.getWeeks = async () => {
+exports.getAllWeeks = async () => {
   try {
     return await Week.find().populate("tasks");
   } catch (err) {
