@@ -8,8 +8,15 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/database');
 const http = require('http');
 const socketIO = require('socket.io');
+const fileUpload = require('express-fileupload');
 
 const app = express();
+
+app.use(fileUpload());
+const fileController = require('./controllers/fileController');
+
+app.post('/upload', fileController.uploadFile);
+
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 

@@ -180,6 +180,14 @@
  </div>
 </div>
 
+<!-- Modal para el éxito de la carga -->
+<div id="uploadSuccessModal" style="display: none;">
+  <div>
+    <p>Archivo subido correctamente.</p>
+    <button id="closeSuccessModal">Cerrar</button>
+  </div>
+</div>
+
 <!-- Modal genérica -->
 <div class="modal fade" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -220,7 +228,7 @@ aria-hidden="true">
 </div>
 
   <script src="./bootstrap/bootstrap.bundle.min.js"></script>
-  
+  <script src="/socket.io/socket.io.js"></script>
   <script src="./scripts/create-task.js" type="module"></script>
   <script src="./scripts/create-file.js" type="module"></script>
  

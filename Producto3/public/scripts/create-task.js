@@ -1,7 +1,6 @@
 
 let selectedCard;
-// Función para crear o actualizar una tarea en la base de datos
-// Si se pasa un ID, la tarea se actualiza; de lo contrario, se crea una nueva (medio funcionando)
+
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId, fileUrl) {
   const isUpdating = Boolean(id);
   const query = isUpdating ? 'updateTask' : 'createTask';
