@@ -41,7 +41,7 @@ document.getElementById("uploadForm").addEventListener("submit", async (event) =
     if (data.success) {
       socket.emit("file_uploaded", data.fileName);
       closeUploadModal();
-      openUploadSuccessModal(); // Abre el modal de éxito
+      openUploadSuccessModal(); 
     } else {
       alert("Error al subir el archivo.");
     }
@@ -50,7 +50,6 @@ document.getElementById("uploadForm").addEventListener("submit", async (event) =
   }
 });
 
-// Funciones para el modal de éxito
 function openUploadSuccessModal() {
   const successModal = document.getElementById("uploadSuccessModal");
   successModal.style.display = "block";
