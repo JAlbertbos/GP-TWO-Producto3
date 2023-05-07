@@ -132,6 +132,13 @@ function createTaskCard(task) {
       </div>
     </div>
   `;
+
+  if (uploadedFileName) {
+    const fileNameElement = document.createElement("p");
+    fileNameElement.textContent = `Archivo: ${uploadedFileName}`;
+    tarjeta.appendChild(fileNameElement);
+  }
+
   tarjeta.setAttribute('draggable', true);
   const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
   botonEliminar.addEventListener('click', async function () {
@@ -175,6 +182,7 @@ function createTaskCard(task) {
   return tarjeta;
 
 
+  
 }
 // Función para eliminar una tarea de la base de datos por ID
 async function deleteTask(taskId) {
