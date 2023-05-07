@@ -133,7 +133,6 @@ function createTaskCard(task) {
         <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
         <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
         <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
-        <li class="list-group-item"><strong>Adjunto:</strong> <a href="${task.fileUrl}" id="adjunto-enlace" target="_blank">Ver archivo</a></li>
       </ul>
       <div class="form-check mt-3">
         <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
@@ -281,7 +280,6 @@ const iconoPapelera = document.createElement('i');
 iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
 const urlParams = new URLSearchParams(window.location.search);
 const weekId = urlParams.get('weekId');
-const adjunto = document.querySelector("#adjunto");
 function validarCampos() {
   let mensajeError = '';
   if (nombreTarea.value.trim() === '') {
@@ -296,8 +294,6 @@ function validarCampos() {
     mensajeError = 'Los participantes no pueden estar vacíos.';
   } else if (ubicacion.value.trim() === '') {
     mensajeError = 'La ubicación no puede estar vacía.';
-  }if (!adjunto.files || !adjunto.files[0]) {
-    mensajeError = 'Debes seleccionar un archivo.';
   }else if (mensajeError) {
     document.getElementById('genericModalMessage').innerText = mensajeError;
     const modal = new bootstrap.Modal(document.getElementById('genericModal'));
@@ -335,7 +331,7 @@ form.addEventListener('submit', async function (event) {
       location: ubicacion.value,
       completed: completed.checked,
       day: selectedDay,
-      file: adjunto.files[0]
+
     };
     const taskCard = createTaskCard(task);
     taskCard.addEventListener('dragstart', function (event) {
@@ -360,7 +356,6 @@ form.addEventListener('submit', async function (event) {
         <li class="list-group-item"><strong>Hora de final:</strong> ${horaFinal.value}</li>
         <li class="list-group-item"><strong>Participantes:</strong> ${participantes.value}</li>
         <li class="list-group-item"><strong>Ubicación:</strong> ${ubicacion.value}</li>
-        <li class="list-group-item"><strong>Adjunto:</strong> <a href="#" id="adjunto-enlace">Ver archivo</a></li>
       </ul>
       <div class="form-check mt-3">
         <input class="form-check-input" type="checkbox" id="tarea-${nombreTarea.value}">

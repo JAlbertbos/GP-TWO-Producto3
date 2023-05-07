@@ -32,13 +32,13 @@ function setupSocketIO(io) {
 
     socket.on('getAllWeeks', (data, callback) => {
       WeeksController.getAllWeeks()
-        .then((semanas_obtenidas) => {
-          callback({ message: 'OK', weeks: semanas_obtenidas });
-        })
-        .catch((error) => {
-          console.error('Error al obtener semanas:', error);
-          callback({ error: 'Error al obtener semanas', weeks: [] });
-        });
+      .then((semanas_obtenidas) => {
+        callback({ message: 'OK', weeks: semanas_obtenidas });
+      })
+      .catch((error) => {
+        console.error('Error al obtener semanas:', error);
+        callback({ error: 'Error al obtener semanas', weeks: [] });
+      });
     });
 
     
