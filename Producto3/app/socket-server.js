@@ -1,4 +1,4 @@
-const weeksController = require('./controllers/WeeksController');
+const WeeksController = require('./controllers/WeeksController');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -30,16 +30,17 @@ function setupSocketIO(io) {
       }
     });
 
-    socket.on('getAllWeeks', async (_, callback) => {
-        try {
-          const weeks = await weeksController.getWeeks();
-          console.log('Semanas obtenidas del controlador:', weeks);
-          callback({ success: true, weeks });
-        } catch (error) {
+    socket.on('getAllWeeks', (data, callback) => {
+      WeeksController.getAllWeeks()
+        .then((semanas_obtenidas) => {
+          callback({ message: 'OK', weeks: semanas_obtenidas });
+        })
+        .catch((error) => {
           console.error('Error al obtener semanas:', error);
           callback({ success: false, error: error.message });
-        }
+        })
       });
+      
 
 
     socket.on('disconnect', () => {
