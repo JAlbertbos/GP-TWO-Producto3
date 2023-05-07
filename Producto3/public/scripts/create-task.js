@@ -126,7 +126,6 @@ function createTaskCard(task) {
         <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
         <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
       </div>
-      
       <div class="mt-auto d-flex justify-content-end">
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
