@@ -3,6 +3,12 @@ let selectedCard;
 
 // Función para crear o actualizar una tarea usando Socket.IO
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
+  // Comprobar si weekId es válido antes de continuar
+  if (!weekId) {
+    console.error('Error: weekId is not valid');
+    return;
+  }
+
   const taskData = {
     id,
     name,
@@ -21,6 +27,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
       if (response.success) {
         console.log('Tarea creada con éxito');
       } else {
+        console.log (id)
         console.error('Error al crear tarea:', response.error);
       }
     });
@@ -34,6 +41,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
     });
   }
 }
+
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
   return new Promise((resolve, reject) => {
@@ -230,6 +238,7 @@ const iconoPapelera = document.createElement('i');
 iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
 const urlParams = new URLSearchParams(window.location.search);
 const weekId = urlParams.get('weekId');
+
 function validarCampos() {
   let mensajeError = '';
   if (nombreTarea.value.trim() === '') {
@@ -266,7 +275,7 @@ form.addEventListener('submit', async function (event) {
     tarjetaAEditar.querySelector('.list-group-item:nth-child(4)').innerText = `Ubicación: ${ubicacion.value}`;
     tarjetaAEditar = null;
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
-    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId, adjunto.files[0]);
+    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId, adjunto.files[0]);
     modal.hide();
     form.reset();
   } else {
