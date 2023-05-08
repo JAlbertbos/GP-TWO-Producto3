@@ -3,7 +3,7 @@ const TasksController = require('./controllers/TasksController');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
-    console.log('Client connected');
+    //console.log('Client connected');
 
     //SEMANAS
     socket.on('createWeek', async (data, callback) => {
@@ -91,7 +91,7 @@ function setupSocketIO(io) {
       }
     });
     socket.on('disconnect', () => {
-      console.log('Client disconnected');
+      //console.log('Client disconnected');
     });
   });
 }
