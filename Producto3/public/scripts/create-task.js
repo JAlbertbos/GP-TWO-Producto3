@@ -3,6 +3,11 @@ let selectedCard;
 
 // Función para crear o actualizar una tarea usando Socket.IO
 async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
+  // Comprobar si weekId es válido antes de continuar
+  if (!weekId) {
+    console.error('Error: weekId no es valido');
+    return;
+  }
   const taskData = {
     id,
     name,
@@ -21,6 +26,7 @@ async function createOrUpdateTask(id, name, description, startTime, endTime, par
       if (response.success) {
         console.log('Tarea creada con éxito');
       } else {
+        console.log (id)
         console.error('Error al crear tarea:', response.error);
       }
     });
@@ -103,13 +109,6 @@ function createTaskCard(task) {
       </div>
     </div>
   `;
-
-  if (uploadedFileName) {
-    const fileNameElement = document.createElement("p");
-    fileNameElement.textContent = `Archivo: ${uploadedFileName}`;
-    tarjeta.appendChild(fileNameElement);
-  }
-
   tarjeta.setAttribute('draggable', true);
   const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
   botonEliminar.addEventListener('click', async function () {
@@ -153,18 +152,17 @@ function createTaskCard(task) {
   return tarjeta;
 
 
-  
 }
 // Función para eliminar una tarea de la base de datos por ID usando Socket.IO
 async function deleteTask(taskId) {
   return new Promise((resolve, reject) => {
     socket.emit('deleteTask', { id: taskId }, (response) => {
       if (response.success) {
-        console.log('Server response:', response);
+        console.log('Tarea Eliminada:', response);
         resolve(response);
       } else {
-        console.error("Server response:", response);
-        reject(new Error(`Error in deleteTask: ${response.error}`));
+        console.error("Respuesta del servidor:", response);
+        reject(new Error(`Error en deleteTask: ${response.error}`));
       }
     });
   });
@@ -238,6 +236,7 @@ const iconoPapelera = document.createElement('i');
 iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
 const urlParams = new URLSearchParams(window.location.search);
 const weekId = urlParams.get('weekId');
+
 function validarCampos() {
   let mensajeError = '';
   if (nombreTarea.value.trim() === '') {
@@ -274,7 +273,7 @@ form.addEventListener('submit', async function (event) {
     tarjetaAEditar.querySelector('.list-group-item:nth-child(4)').innerText = `Ubicación: ${ubicacion.value}`;
     tarjetaAEditar = null;
     const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
-    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, newDay, weekId, adjunto.files[0]);
+    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId, adjunto.files[0]);
     modal.hide();
     form.reset();
   } else {
@@ -377,7 +376,8 @@ form.addEventListener('submit', async function (event) {
       const modal = new bootstrap.Modal(document.getElementById("formtask"));
       modal.show();
     });
-    tarjeta.setAttribute('data-id', idTarjeta);
+    tarjeta.setAttribute('data-id', newTaskId);
+
   }
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
