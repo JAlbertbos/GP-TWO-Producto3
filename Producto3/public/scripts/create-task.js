@@ -1,45 +1,58 @@
 const socket = io();
 let selectedCard;
 
+
 // Función para crear o actualizar una tarea usando Socket.IO
-async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
-  // Comprobar si weekId es válido antes de continuar
-  if (!weekId) {
-    console.error('Error: weekId is not valid');
-    return;
-  }
+async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId, taskCard) {
+  return new Promise((resolve, reject) => {
+    // Comprobar si weekId es válido antes de continuar
+    if (!weekId) {
+      reject(new Error('Error: weekId no es valido'));
+      return;
+    }
+    const taskData = {
+      id,
+      name,
+      description,
+      startTime,
+      endTime,
+      participants,
+      location,
+      completed,
+      day,
+      weekId,
+    };
 
-  const taskData = {
-    id,
-    name,
-    description,
-    startTime,
-    endTime,
-    participants,
-    location,
-    completed,
-    day,
-    weekId,
-  };
-
-  if (!id) {
-    socket.emit('createTask', taskData, (response) => {
-      if (response.success) {
-        console.log('Tarea creada con éxito');
-      } else {
-        console.log (id)
-        console.error('Error al crear tarea:', response.error);
-      }
-    });
-  } else {
-    socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
-      if (response.success) {
-        console.log('Tarea actualizada con éxito');
-      } else {
-        console.error('Error al actualizar tarea:', response.error);
-      }
-    });
-  }
+    if (!id) {
+      socket.emit('createTask', taskData, (response) => {
+        if (response.success) {
+          console.log('Tarea creada con éxito');
+          const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
+    
+          // Actualizar el atributo 'data-id' y el ID de la tarjeta
+          if (taskCard) {
+            taskCard.setAttribute('data-id', newTaskId);
+            taskCard.id = `tarjeta-${newTaskId}`;
+          }
+    
+          resolve(newTaskId);
+        } else {
+          console.error('Error al crear tarea:', response.error);
+          reject(new Error(`Error al crear tarea: ${response.error}`));
+        }
+      });
+    } else {
+      socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
+        if (response.success) {
+          console.log('Tarea actualizada con éxito');
+          resolve(id);
+        } else {
+          console.error('Error al actualizar tarea:', response.error);
+          reject(new Error(`Error al actualizar tarea: ${response.error}`));
+        }
+      });
+    }
+  });
 }
 
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
@@ -160,11 +173,11 @@ async function deleteTask(taskId) {
   return new Promise((resolve, reject) => {
     socket.emit('deleteTask', { id: taskId }, (response) => {
       if (response.success) {
-        console.log('Server response:', response);
+        console.log('Tarea Eliminada:', response);
         resolve(response);
       } else {
-        console.error("Server response:", response);
-        reject(new Error(`Error in deleteTask: ${response.error}`));
+        console.error("Respuesta del servidor:", response);
+        reject(new Error(`Error en deleteTask: ${response.error}`));
       }
     });
   });
@@ -216,6 +229,7 @@ async function drop(event) {
 
   dropzoneAncestor.appendChild(element);
 }
+
 window.drop = drop;
 let tarjetaAEditar;
 
@@ -279,7 +293,10 @@ form.addEventListener('submit', async function (event) {
     modal.hide();
     form.reset();
   } else {
+
+
     const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
+    console.log("CONSOLE LOOOOOOOG "+ newTaskId);
     const task = {
       _id: newTaskId,
       name: nombreTarea.value,
@@ -378,7 +395,8 @@ form.addEventListener('submit', async function (event) {
       const modal = new bootstrap.Modal(document.getElementById("formtask"));
       modal.show();
     });
-    tarjeta.setAttribute('data-id', idTarjeta);
+    tarjeta.setAttribute('data-id', newTaskId);
+
   }
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
