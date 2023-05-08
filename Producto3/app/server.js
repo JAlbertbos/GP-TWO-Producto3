@@ -1,4 +1,3 @@
-// Importando módulos necesarios
 const express = require('express');
 const { ApolloServer } = require('apollo-server-express');
 const bodyParser = require('body-parser');
@@ -7,8 +6,17 @@ const { typeDefs, resolvers } = require('./config/config.js');
 const path = require('path');
 const mongoose = require('mongoose');
 const connectDB = require('./config/database');
+const http = require('http');
+const socketIO = require('socket.io');
+const fileUpload = require('express-fileupload');
 
 const app = express();
+
+app.use(fileUpload());
+const fileController = require('./controllers/fileController');
+
+app.post('/upload', fileController.uploadFile);
+
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -24,13 +32,19 @@ const server = new ApolloServer({
   resolvers,
 });
 
+const httpServer = http.createServer(app);
+const io = socketIO(httpServer);
+
+const setupSocketIO = require('./socket-server');
+setupSocketIO(io);
+
 async function startServer() {
   await server.start();
   server.applyMiddleware({ app, path: '/graphql' });
 
   connectDB()
     .then(() => {
-      app.listen(config.PORT, () => {
+      httpServer.listen(config.PORT, () => {
         console.log(`Servidor escuchando en el puerto ${config.PORT}`);
       });
     })
@@ -40,3 +54,5 @@ async function startServer() {
 }
 
 startServer();
+
+module.exports = { io };

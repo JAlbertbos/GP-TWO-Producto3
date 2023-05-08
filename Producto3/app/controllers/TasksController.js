@@ -1,13 +1,14 @@
 const Task = require("../models/Task");
 
-exports.getTasks = async () => {
+exports.getTasks = async ({ weekId }) => {
   try {
-    return await Task.find().populate("week");
-  } catch (err) {
-    console.error(err);
-    throw new Error("Error retrieving tasks");
+    const tasks = await Task.find({ week: weekId });
+    return tasks;
+  } catch (error) {
+    console.error('Error fetching tasks:', error);
   }
 };
+
 
 exports.getTaskById = async (id) => {
   try {
@@ -20,6 +21,8 @@ exports.getTaskById = async (id) => {
 
 exports.createTask = async (taskData) => {
   try {
+    taskData.week = taskData.weekId;
+    delete taskData.weekId;
     const newTask = new Task(taskData);
     return await newTask.save();
   } catch (err) {
@@ -27,6 +30,8 @@ exports.createTask = async (taskData) => {
     throw new Error("Error creating task");
   }
 };
+
+
 
 exports.updateTaskById = async (id, updatedData) => {
   try {
@@ -37,7 +42,8 @@ exports.updateTaskById = async (id, updatedData) => {
   }
 };
 
-exports.deleteTaskById = async (id) => {
+exports.deleteTask = async (id) => {
+
   try {
     await Task.findByIdAndRemove(id);
   } catch (err) {
