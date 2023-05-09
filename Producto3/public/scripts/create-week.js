@@ -76,7 +76,7 @@ async function graphqlFetch(query, variables = {}) {
 
     return jsonResponse.data;
   } catch (error) {
-    console.error('Error in graphqlFetch:', error);
+    console.error('Error en graphqlFetch:', error);
     throw error;
   }
 }
@@ -90,25 +90,37 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
         console.error('Error al guardar la semana:', response.error);
         reject(response.error);
       } else {
-        console.log('Respuesta del servidor al crear la semana:', response.week); 
-        console.log("OK! Tarea creada desde socket.io"); 
+        console.log('Respuesta del servidor al crear la semana:', response.week);
         resolve(response.week._id);
       }
     });
   });
 }
 
-
 async function updateWeekOnServer(id, name, numberWeek, priority, year, description, borderColor) {
   return new Promise((resolve, reject) => {
-    console.log('Enviando petición para actualizar semana:', { id, name, numberWeek, priority, year, description, borderColor }); // Agrega esta línea
-    socket.emit('updateWeek', { id, name, numberWeek, priority, year, description, borderColor }, (response) => {
+    
+    const updatedData = {
+      name,
+      numberWeek,
+      priority,
+      year,
+      description,
+      borderColor,
+    };
+    socket.emit('updateWeek', { id, updatedData }, (response) => {
       if (response.error) {
         console.error('Error al actualizar la semana:', response.error);
         reject(response.error);
       } else {
         console.log('Respuesta del servidor al actualizar la semana:', response.updatedWeek);
-        resolve(response.updatedWeek._id);
+        if (response.updatedWeek && response.updatedWeek._id) {
+          resolve(response.updatedWeek._id);
+          console.log('OK : Semana actualizada');
+        } else {
+          console.error('Error: updatedWeek o updatedWeek._id no definido', response.updatedWeek);
+          reject('Error: updatedWeek o updatedWeek._id no definido');
+        }
       }
     });
   });
@@ -128,6 +140,7 @@ function removeExistingCards() {
 async function addCardToDOM(id, name, numberWeek, priority, year, description, color) {
   const cardContainer = document.createElement("div");
   cardContainer.classList.add("col-md-4", "mb-4");
+
   const priorityText = priorityToString(priority);
 
   const card = `
@@ -141,9 +154,8 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
       </div>
       <div class="card-icons d-flex justify-content-between position-absolute bottom-0 start-0 end-0">
         <a href="./Weektasks.html?weekId=${id}" class="card-link"><i class="bi bi-eye"></i></a>
-        <a href="#" class="card-link">
-          <i class="bi bi-trash delete-icon" data-bs-toggle="modal" data-bs-target="#eliminarTarjetaModal" data-card="${id}"></i>
-          <button type="button" class="btn btn-link p-0 editar-week" data-id="${id}"><i class="bi bi-pencil-square text-primary"></i></button>
+        <a href="#" class="card-link"><i class="bi bi-trash delete-icon" data-bs-toggle="modal" data-bs-target="#eliminarTarjetaModal" data-card="${id}"></i>
+        <a href="#" class="card-link btn btn-link p-0 editar-week " data-id="${id}"><i class="bi bi-pencil-square "></i></a>
         </a>
       </div>
     </div>
@@ -165,12 +177,11 @@ async function addCardToDOM(id, name, numberWeek, priority, year, description, c
   
   function fillModalForm(cardValues) {
     document.getElementById("name").value = cardValues.name;
-    document.getElementById("description").value = cardValues.description;
+    document.getElementById("description").value = cardValues.description.substring(13);
     document.getElementById("numberWeek").value = cardValues.numberWeek;
     document.getElementById("priority").value = parseInt(cardValues.priority);
     document.getElementById("year").value = cardValues.year;
   
-    // Establecer el color seleccionado
     const colorCircles = document.querySelectorAll(".circle");
     colorCircles.forEach(circle => {
       if (circle.dataset.color === cardValues.color) {
@@ -221,10 +232,10 @@ async function loadWeeks() {
     } else {
       console.log("Semanas recibidas:", response.weeks);
       renderWeeks(response.weeks);
-      console.log("OK! Cargadas semanas desde socket.io");
     }
   });
 }
+
 
 
 // Eventos
@@ -255,6 +266,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         break;
       }
     }
+
+    function mostrarModal(mensaje) {
+      const modalBody = document.querySelector("#genericModal #genericModalMessage");
+      modalBody.textContent = mensaje;
+  
+      const genericModal = new bootstrap.Modal(document.querySelector("#genericModal"));
+      genericModal.show();
+  }
+  
   
     if (valido) {
       e.preventDefault();

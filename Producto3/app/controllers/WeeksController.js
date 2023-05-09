@@ -30,12 +30,19 @@ exports.createWeek = async (weekData) => {
 
 exports.updateWeekById = async (id, updatedData) => {
   try {
-    return await Week.findByIdAndUpdate(id, updatedData, { new: true });
+    console.log('Updating week with ID:', id, 'and data:', updatedData);
+    const updatedWeek = await Week.findByIdAndUpdate(id, updatedData, { new: true });
+    console.log('Updated week:', updatedWeek);
+    if (!updatedWeek) {
+      throw new Error("Week not found");
+    }
+    return updatedWeek;
   } catch (err) {
     console.error(err);
     throw new Error("Error updating week");
   }
 };
+
 
 exports.deleteWeekById = async (id) => {
     try {

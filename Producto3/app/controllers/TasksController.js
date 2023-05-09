@@ -1,4 +1,5 @@
-const Task = require("../models/Task");
+const Task = require('../models/Task');
+
 
 exports.getTasks = async ({ weekId }) => {
   try {
@@ -21,6 +22,8 @@ exports.getTaskById = async (id) => {
 
 exports.createTask = async (taskData) => {
   try {
+    taskData.week = taskData.weekId;
+    delete taskData.weekId;
     const newTask = new Task(taskData);
     return await newTask.save();
   } catch (err) {
@@ -28,6 +31,8 @@ exports.createTask = async (taskData) => {
     throw new Error("Error creating task");
   }
 };
+
+
 
 exports.updateTaskById = async (id, updatedData) => {
   try {
