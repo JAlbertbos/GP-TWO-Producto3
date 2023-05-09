@@ -13,14 +13,21 @@ async function createOrUpdateTask(
   completed,
   day,
   weekId,
-  taskCard
+  taskCard,
+  validateTask // Nuevo parámetro
 ) {
   return new Promise((resolve, reject) => {
     // Comprobar si weekId es válido antes de continuar
     if (!weekId) {
-      reject(new Error('Error: weekId no es valido'));
+      validarCampos('Error: weekId no es valido');
       return;
     }
+
+    // Validar campos
+    if (validateTask && !validarCampos()) {
+      return; // Si la validación falla, la función se detiene aquí
+    }
+
     const taskData = {
       id,
       name,
@@ -55,7 +62,7 @@ async function createOrUpdateTask(
           resolve(newTaskId);
           onSuccess(true);
         } else {
-          console.error('Error al crear tarea:', response.error);
+          validarCampos(`Error al crear tarea: ${response.error}`);
           reject(new Error(`Error al crear tarea: ${response.error}`));
         }
       });
@@ -66,13 +73,14 @@ async function createOrUpdateTask(
           resolve(id);
           onSuccess(false);
         } else {
-          console.error('Error al actualizar tarea:', response.error);
+          validarCampos(`Error al actualizar tarea: ${response.error}`);
           reject(new Error(`Error al actualizar tarea: ${response.error}`));
         }
       });
     }
   });
 }
+
 
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
@@ -323,7 +331,10 @@ function validarCampos() {
     mensajeError = 'Los participantes no pueden estar vacíos.';
   } else if (ubicacion.value.trim() === '') {
     mensajeError = 'La ubicación no puede estar vacía.';
-  } else if (mensajeError) {
+  } 
+
+  // Verificar si mensajeError no está vacío
+  if (mensajeError) {
     document.getElementById('genericModalMessage').innerText = mensajeError;
     const modal = new bootstrap.Modal(document.getElementById('genericModal'));
     modal.show();
