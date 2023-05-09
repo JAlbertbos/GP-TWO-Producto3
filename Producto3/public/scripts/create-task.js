@@ -2,44 +2,78 @@ const socket = io();
 let selectedCard;
 
 // Función para crear o actualizar una tarea usando Socket.IO
-async function createOrUpdateTask(id, name, description, startTime, endTime, participants, location, completed, day, weekId) {
-  // Comprobar si weekId es válido antes de continuar
-  if (!weekId) {
-    console.error('Error: weekId no es valido');
-    return;
-  }
-  const taskData = {
-    id,
-    name,
-    description,
-    startTime,
-    endTime,
-    participants,
-    location,
-    completed,
-    day,
-    weekId,
-  };
+async function createOrUpdateTask(
+  id,
+  name,
+  description,
+  startTime,
+  endTime,
+  participants,
+  taskLocation,
+  completed,
+  day,
+  weekId,
+  taskCard
+) {
+  return new Promise((resolve, reject) => {
+    // Comprobar si weekId es válido antes de continuar
+    if (!weekId) {
+      reject(new Error('Error: weekId no es valido'));
+      return;
+    }
+    const taskData = {
+      id,
+      name,
+      description,
+      startTime,
+      endTime,
+      participants,
+      location: taskLocation,
+      completed,
+      day,
+      weekId,
+    };
 
-  if (!id) {
-    socket.emit('createTask', taskData, (response) => {
-      if (response.success) {
-        console.log('Tarea creada con éxito');
-      } else {
-        console.log (id)
-        console.error('Error al crear tarea:', response.error);
+    const onSuccess = (isCreated) => {
+      if (isCreated) {
+        window.location.reload(); // Refresca la página solo cuando se crea la tarea
       }
-    });
-  } else {
-    socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
-      if (response.success) {
-        console.log('Tarea actualizada con éxito');
-      } else {
-        console.error('Error al actualizar tarea:', response.error);
-      }
-    });
-  }
+    };
+
+    if (!id) {
+      socket.emit('createTask', { ...taskData, day }, (response) => {
+        if (response.success) {
+          console.log('Tarea creada con éxito');
+          const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
+
+          // Actualizar el atributo 'data-id' y el ID de la tarjeta
+          if (taskCard) {
+            taskCard.setAttribute('data-id', newTaskId);
+            taskCard.id = `tarjeta-${newTaskId}`;
+          }
+
+          resolve(newTaskId);
+          onSuccess(true);
+        } else {
+          console.error('Error al crear tarea:', response.error);
+          reject(new Error(`Error al crear tarea: ${response.error}`));
+        }
+      });
+    } else {
+      socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
+        if (response.success) {
+          console.log('Tarea actualizada con éxito');
+          resolve(id);
+          onSuccess(false);
+        } else {
+          console.error('Error al actualizar tarea:', response.error);
+          reject(new Error(`Error al actualizar tarea: ${response.error}`));
+        }
+      });
+    }
+  });
 }
+
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
   return new Promise((resolve, reject) => {
@@ -48,27 +82,28 @@ async function getTasks(weekId) {
         console.log('Carga del servidor:', response);
         resolve(response.tasks);
       } else {
-        console.error("Carga del servidor:", response);
+        console.error('Carga del servidor:', response);
         reject(new Error(`Error en getAllTasks: ${response.error}`));
       }
     });
   });
 }
 // Función para agregar una tarjeta de tarea al DOM en el día correspondiente
-function addTaskToDOM(taskCard, day) {
+function addTaskToDOM(taskCard, selectedDay) {
   let dropzone;
-  if (day === 'zone-bottom') {
-    dropzone = document.querySelector('.zone-bottom');
-  } else {
-    dropzone = document.querySelector(`.contenedor-dia[data-day="${day}"] .dropzone`);
+  if (selectedDay) {
+    dropzone = document.querySelector(`.contenedor-dia[data-day="${selectedDay}"] .dropzone`);
   }
-
+  if (!dropzone) {
+    dropzone = document.querySelector('.zone-bottom');
+  }
   if (dropzone) {
     dropzone.appendChild(taskCard);
   } else {
     console.error("Dropzone no encontrada");
   }
 }
+
 // Función para cargar las tareas de la base de datos y agregarlas al DOM
 async function loadTasksFromDatabase() {
   const tasks = await getTasks(weekId);
@@ -77,7 +112,10 @@ async function loadTasksFromDatabase() {
     taskCard.addEventListener('dragstart', function (event) {
       event.dataTransfer.setData('text/plain', this.id);
     });
-    addTaskToDOM(taskCard, task.day === 'zone-bottom' ? 'zone-bottom' : task.day);
+    addTaskToDOM(
+      taskCard,
+      task.day === 'zone-bottom' ? 'zone-bottom' : task.day
+    );
   }
 }
 // Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
@@ -115,7 +153,7 @@ function createTaskCard(task) {
     selectedCard = tarjeta;
     const taskId = selectedCard.getAttribute('data-id');
 
-    const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
+    const eliminarTareaModalEl = document.getElementById('eliminarTareaModal');
     const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
     eliminarTareaModal.show();
 
@@ -144,14 +182,23 @@ function createTaskCard(task) {
     try {
       const taskId = task._id;
       const completed = this.checked;
-      await createOrUpdateTask(taskId, task.name, task.description, task.startTime, task.endTime, task.participants, task.location, completed, task.day, null);
+      await createOrUpdateTask(
+        taskId,
+        task.name,
+        task.description,
+        task.startTime,
+        task.endTime,
+        task.participants,
+        task.location,
+        completed,
+        task.day,
+        null
+      );
     } catch (error) {
       console.error('Error al actualizar la tarea:', error);
     }
   });
   return tarjeta;
-
-
 }
 // Función para eliminar una tarea de la base de datos por ID usando Socket.IO
 async function deleteTask(taskId) {
@@ -161,13 +208,12 @@ async function deleteTask(taskId) {
         console.log('Tarea Eliminada:', response);
         resolve(response);
       } else {
-        console.error("Respuesta del servidor:", response);
+        console.error('Respuesta del servidor:', response);
         reject(new Error(`Error en deleteTask: ${response.error}`));
       }
     });
   });
 }
-
 // Función para permitir soltar elementos en una zona de soltado (dropzone)
 function allowDrop(event) {
   event.preventDefault();
@@ -182,7 +228,7 @@ async function drop(event) {
   }
 
   event.preventDefault();
-  const taskId = event.dataTransfer.getData("text");
+  const taskId = event.dataTransfer.getData('text');
   const element = document.getElementById(taskId);
 
   const contenedorDia = dropzoneAncestor.closest('.contenedor-dia');
@@ -195,7 +241,7 @@ async function drop(event) {
   } else if (zoneBottom) {
     newDay = 'zone-bottom';
   } else {
-    console.error("No se encontró el elemento .contenedor-dia o .zone-bottom");
+    console.error('No se encontró el elemento .contenedor-dia o .zone-bottom');
     return;
   }
 
@@ -203,21 +249,74 @@ async function drop(event) {
     id: element.getAttribute('data-id'),
     name: element.querySelector('.card-title').innerText,
     description: element.querySelector('.card-text').innerText,
-    startTime: element.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', ''),
-    endTime: element.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', ''),
-    participants: element.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', ''),
-    location: element.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', ''),
+    startTime: element
+      .querySelector('.list-group-item:nth-child(1)')
+      .innerText.replace('Hora de inicio: ', ''),
+    endTime: element
+      .querySelector('.list-group-item:nth-child(2)')
+      .innerText.replace('Hora de final: ', ''),
+    participants: element
+      .querySelector('.list-group-item:nth-child(3)')
+      .innerText.replace('Participantes: ', ''),
+    location: element
+      .querySelector('.list-group-item:nth-child(4)')
+      .innerText.replace('Ubicación: ', ''),
     completed: element.querySelector('.form-check-input').checked,
   };
 
-  await createOrUpdateTask(taskData.id, taskData.name, taskData.description, taskData.startTime, taskData.endTime, taskData.participants, taskData.location, taskData.completed, newDay, weekId);
+  await createOrUpdateTask(
+    taskData.id,
+    taskData.name,
+    taskData.description,
+    taskData.startTime,
+    taskData.endTime,
+    taskData.participants,
+    taskData.location,
+    taskData.completed,
+    newDay,
+    weekId
+  );
 
   dropzoneAncestor.appendChild(element);
 }
+
 window.drop = drop;
 let tarjetaAEditar;
 
-let selectedDay;
+//Funcion de cargar archivos 
+
+const openModalButton = document.getElementById('openModal');
+const uploadModalEl = document.getElementById('uploadModal');
+const uploadModal = new bootstrap.Modal(uploadModalEl);
+
+openModalButton.addEventListener('click', function() {
+  uploadModal.show();
+});
+const uploadForm = document.getElementById('uploadForm');
+const closeButton = document.querySelector('.close');
+
+uploadForm.addEventListener('submit', function(event) {
+  event.preventDefault(); 
+  const formData = new FormData(uploadForm);
+  fetch('/upload', {
+    method: 'POST',
+    body: formData
+  })
+    .then(response => response.json())
+    .then(success => {
+      if (success) {
+        console.log("Archivo subido con éxito");
+        // Cerrar el modal después de subir el archivo
+        uploadModal.hide();
+      }
+    })
+    .catch(error => console.error('Error:', error));
+});
+closeButton.addEventListener('click', function() {
+  uploadModal.hide();
+});
+
+let selectedDay = "zone-bottom";
 document.querySelectorAll('[data-day]').forEach(button => {
   button.addEventListener('click', function () {
     selectedDay = this.getAttribute('data-day');
@@ -233,7 +332,13 @@ const participantes = document.querySelector('#participantes');
 const ubicacion = document.querySelector('#ubicacion');
 const completed = document.querySelector('#tareaTerminada');
 const iconoPapelera = document.createElement('i');
-iconoPapelera.classList.add('bi', 'bi-trash-fill', 'ms-2', 'eliminar-tarea', 'text-danger');
+iconoPapelera.classList.add(
+  'bi',
+  'bi-trash-fill',
+  'ms-2',
+  'eliminar-tarea',
+  'text-danger'
+);
 const urlParams = new URLSearchParams(window.location.search);
 const weekId = urlParams.get('weekId');
 
@@ -251,7 +356,7 @@ function validarCampos() {
     mensajeError = 'Los participantes no pueden estar vacíos.';
   } else if (ubicacion.value.trim() === '') {
     mensajeError = 'La ubicación no puede estar vacía.';
-  }else if (mensajeError) {
+  } else if (mensajeError) {
     document.getElementById('genericModalMessage').innerText = mensajeError;
     const modal = new bootstrap.Modal(document.getElementById('genericModal'));
     modal.show();
@@ -267,17 +372,52 @@ form.addEventListener('submit', async function (event) {
   if (tarjetaAEditar) {
     tarjetaAEditar.querySelector('.card-title').innerText = nombreTarea.value;
     tarjetaAEditar.querySelector('.card-text').innerText = descripcion.value;
-    tarjetaAEditar.querySelector('.list-group-item:nth-child(1)').innerText = `Hora de inicio: ${horaInicio.value}`;
-    tarjetaAEditar.querySelector('.list-group-item:nth-child(2)').innerText = `Hora de final: ${horaFinal.value}`;
-    tarjetaAEditar.querySelector('.list-group-item:nth-child(3)').innerText = `Participantes: ${participantes.value}`;
-    tarjetaAEditar.querySelector('.list-group-item:nth-child(4)').innerText = `Ubicación: ${ubicacion.value}`;
+    tarjetaAEditar.querySelector(
+      '.list-group-item:nth-child(1)'
+    ).innerText = `Hora de inicio: ${horaInicio.value}`;
+    tarjetaAEditar.querySelector(
+      '.list-group-item:nth-child(2)'
+    ).innerText = `Hora de final: ${horaFinal.value}`;
+    tarjetaAEditar.querySelector(
+      '.list-group-item:nth-child(3)'
+    ).innerText = `Participantes: ${participantes.value}`;
+    tarjetaAEditar.querySelector(
+      '.list-group-item:nth-child(4)'
+    ).innerText = `Ubicación: ${ubicacion.value}`;
     tarjetaAEditar = null;
-    const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
-    await createOrUpdateTask(tarjetaAEditar.getAttribute('data-id'), nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId, adjunto.files[0]);
+    const modal = bootstrap.Modal.getInstance(
+      document.querySelector('#formtask')
+    );
+    await createOrUpdateTask(
+      tarjetaAEditar.getAttribute('data-id'),
+      nombreTarea.value,
+      descripcion.value,
+      horaInicio.value,
+      horaFinal.value,
+      participantes.value,
+      ubicacion.value,
+      completed.checked,
+      selectedDay,
+      weekId,
+      adjunto.files[0]
+    );
     modal.hide();
     form.reset();
   } else {
-    const newTaskId = await createOrUpdateTask(null, nombreTarea.value, descripcion.value, horaInicio.value, horaFinal.value, participantes.value, ubicacion.value, completed.checked, selectedDay, weekId);
+    const newTaskId = await createOrUpdateTask(
+      null,
+      nombreTarea.value,
+      descripcion.value,
+      horaInicio.value,
+      horaFinal.value,
+      participantes.value,
+      ubicacion.value,
+      completed.checked,
+      selectedDay,
+      weekId
+    );
+    console.log('NEWTASKID ' + newTaskId);
+
     const task = {
       _id: newTaskId,
       name: nombreTarea.value,
@@ -288,7 +428,6 @@ form.addEventListener('submit', async function (event) {
       location: ubicacion.value,
       completed: completed.checked,
       day: selectedDay,
-
     };
     const taskCard = createTaskCard(task);
     taskCard.addEventListener('dragstart', function (event) {
@@ -330,7 +469,12 @@ form.addEventListener('submit', async function (event) {
     });
     let dropzone;
     if (selectedDay) {
-      dropzone = document.querySelector(`.contenedor-dia[data-day="${selectedDay}"] .dropzone`);
+      dropzone = document.querySelector(
+        `.contenedor-dia[data-day="${selectedDay}"] .dropzone`
+      );
+    } else {
+      
+      dropzone = document.querySelector('.contenedor-dia .dropzone');
     }
     if (!dropzone) {
       dropzone = document.querySelector('.zone-bottom');
@@ -344,7 +488,9 @@ form.addEventListener('submit', async function (event) {
         tarjeta.classList.remove('borde-verde');
       }
     });
-    const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
+    const modal = bootstrap.Modal.getInstance(
+      document.querySelector('#formtask')
+    );
     modal.hide();
     form.reset();
     const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
@@ -352,7 +498,8 @@ form.addEventListener('submit', async function (event) {
       selectedCard = tarjeta;
       const taskId = selectedCard.getAttribute('data-id');
       await deleteTask(taskId);
-      const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
+      const eliminarTareaModalEl =
+        document.getElementById('eliminarTareaModal');
       const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
       eliminarTareaModal.show();
     });
@@ -362,34 +509,45 @@ form.addEventListener('submit', async function (event) {
       tarjetaAEditar = tarjeta;
       const titulo = tarjeta.querySelector('.card-title').innerText;
       const desc = tarjeta.querySelector('.card-text').innerText;
-      const horaInicioTexto = tarjeta.querySelector('.list-group-item:nth-child(1)').innerText.replace('Hora de inicio: ', '');
-      const horaFinalTexto = tarjeta.querySelector('.list-group-item:nth-child(2)').innerText.replace('Hora de final: ', '');
-      const participantesTexto = tarjeta.querySelector('.list-group-item:nth-child(3)').innerText.replace('Participantes: ', '');
-      const ubicacionTexto = tarjeta.querySelector('.list-group-item:nth-child(4)').innerText.replace('Ubicación: ', '');
-        
+      const horaInicioTexto = tarjeta
+        .querySelector('.list-group-item:nth-child(1)')
+        .innerText.replace('Hora de inicio: ', '');
+      const horaFinalTexto = tarjeta
+        .querySelector('.list-group-item:nth-child(2)')
+        .innerText.replace('Hora de final: ', '');
+      const participantesTexto = tarjeta
+        .querySelector('.list-group-item:nth-child(3)')
+        .innerText.replace('Participantes: ', '');
+      const ubicacionTexto = tarjeta
+        .querySelector('.list-group-item:nth-child(4)')
+        .innerText.replace('Ubicación: ', '');
+
       nombreTarea.value = titulo;
       descripcion.value = desc;
       horaInicio.value = horaInicioTexto;
       horaFinal.value = horaFinalTexto;
       participantes.value = participantesTexto;
       ubicacion.value = ubicacionTexto;
-      const modal = new bootstrap.Modal(document.getElementById("formtask"));
+      const modal = new bootstrap.Modal(document.getElementById('formtask'));
       modal.show();
     });
     tarjeta.setAttribute('data-id', newTaskId);
-
   }
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
-document.getElementById('deleteButton').addEventListener('click', async function () {
-  const taskId = selectedCard.getAttribute('data-id');
-  await deleteTask(taskId); // Elimina la tarea aquí.
-  const tarjeta = document.getElementById(`tarjeta-${taskId}`);
-  if (tarjeta) {
-    tarjeta.remove();
-  }
-  const eliminarTareaModalEl = document.getElementById("eliminarTareaModal");
-  const eliminarTareaModal = bootstrap.Modal.getInstance(eliminarTareaModalEl);
-  eliminarTareaModal.hide();
-});
+document
+  .getElementById('deleteButton')
+  .addEventListener('click', async function () {
+    const taskId = selectedCard.getAttribute('data-id');
+    await deleteTask(taskId); // Elimina la tarea aquí.
+    const tarjeta = document.getElementById(`tarjeta-${taskId}`);
+    if (tarjeta) {
+      tarjeta.remove();
+    }
+    const eliminarTareaModalEl = document.getElementById('eliminarTareaModal');
+    const eliminarTareaModal =
+      bootstrap.Modal.getInstance(eliminarTareaModalEl);
+    eliminarTareaModal.hide();
+  });
 loadTasksFromDatabase();
+
