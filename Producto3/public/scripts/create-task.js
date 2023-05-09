@@ -293,7 +293,6 @@ openModalButton.addEventListener('click', function() {
   uploadModal.show();
 });
 const uploadForm = document.getElementById('uploadForm');
-const closeButton = document.querySelector('.close');
 
 uploadForm.addEventListener('submit', function(event) {
   event.preventDefault(); 
@@ -312,6 +311,9 @@ uploadForm.addEventListener('submit', function(event) {
     })
     .catch(error => console.error('Error:', error));
 });
+
+const closeButton = document.querySelector('.close');
+
 closeButton.addEventListener('click', function() {
   uploadModal.hide();
 });
@@ -535,9 +537,8 @@ form.addEventListener('submit', async function (event) {
   }
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
-document
-  .getElementById('deleteButton')
-  .addEventListener('click', async function () {
+document.getElementById('deleteButton')
+  document.addEventListener('click', async function () {
     const taskId = selectedCard.getAttribute('data-id');
     await deleteTask(taskId); // Elimina la tarea aquí.
     const tarjeta = document.getElementById(`tarjeta-${taskId}`);
