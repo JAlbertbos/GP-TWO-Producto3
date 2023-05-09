@@ -266,6 +266,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         break;
       }
     }
+
+    function mostrarModal(mensaje) {
+      const modalBody = document.querySelector("#genericModal #genericModalMessage");
+      modalBody.textContent = mensaje;
+  
+      const genericModal = new bootstrap.Modal(document.querySelector("#genericModal"));
+      genericModal.show();
+  }
+  
   
     if (valido) {
       e.preventDefault();
