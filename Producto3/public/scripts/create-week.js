@@ -90,8 +90,8 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
         console.error('Error al guardar la semana:', response.error);
         reject(response.error);
       } else {
-        console.log('Respuesta del servidor al crear la semana:', response.createdWeek);
-        resolve(response.createdWeek._id);
+        console.log('Respuesta del servidor al crear la semana:', response.week);
+        resolve(response.week._id);
       }
     });
   });
@@ -266,6 +266,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         break;
       }
     }
+
+    function mostrarModal(mensaje) {
+      const modalBody = document.querySelector("#genericModal #genericModalMessage");
+      modalBody.textContent = mensaje;
+  
+      const genericModal = new bootstrap.Modal(document.querySelector("#genericModal"));
+      genericModal.show();
+  }
+  
   
     if (valido) {
       e.preventDefault();

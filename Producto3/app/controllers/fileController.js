@@ -1,7 +1,7 @@
+const { Task } = require('../models');
 const fs = require('fs');
 const path = require('path');
 
-// Cambia esta ruta según la ubicación deseada para guardar los archivos
 const uploadFolder = path.join(__dirname, '..', 'uploads');
 
 exports.uploadFile = (req, res) => {
@@ -9,17 +9,41 @@ exports.uploadFile = (req, res) => {
     return res.status(400).send('No se subió ningún archivo.');
   }
 
-  // El nombre del campo en el formulario debe coincidir con 'file' aquí
   const file = req.files.file;
   const uploadPath = path.join(uploadFolder, file.name);
 
-  // Usa el método mv() para colocar el archivo en la carpeta de destino
-  file.mv(uploadPath, (err) => {
+  file.mv(uploadPath, async (err) => {
     if (err) {
       console.error(err);
       return res.status(500).send(err);
     }
 
-    res.json({ success: true, message: 'Archivo subido correctamente.', fileName: file.name });
+    // Renombrar el archivo para agregarle un ID único
+    const extension = path.extname(uploadPath);
+    const fileName = path.basename(uploadPath, extension);
+    const newFileName = `${fileName}-${Date.now()}${extension}`;
+    const newFilePath = path.join(uploadFolder, newFileName);
+
+    fs.rename(uploadPath, newFilePath, async (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send(err);
+      }
+
+      try {
+        const task = await Task.findById(req.body.taskId);
+        if (!task) {
+          return res.status(404).send('La tarea no existe.');
+        }
+
+        task.fileUrl = newFileName;
+        await task.save();
+
+        res.json({ success: true, message: 'Archivo subido correctamente.', fileName: newFileName });
+      } catch (error) {
+        console.error('Error al guardar el nombre del archivo en la base de datos:', error);
+        return res.status(500).send('Error al guardar el nombre del archivo en la base de datos.');
+      }
+    });
   });
 };
