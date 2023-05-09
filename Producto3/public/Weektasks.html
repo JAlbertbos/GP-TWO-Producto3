@@ -176,22 +176,24 @@
 
 
 <!-- Modal archivo -->
-<div id="uploadModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header color-rojo text-white">
-      <h5 class=" modal-title">Subir archivo</h5>
-      <span class="close">&times;</span>
-    </div>
-    <div class="modal-body">
-      <form id="uploadForm">
-        <input type="file" id="fileInput" name="file">
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button type="button" class="btn btn-secondary close">Cerrar</button>
-      <button type="submit" class="btn btn-primary" form="uploadForm">Subir archivo</button>
+<div id="uploadModal" class="modal fade" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header color-rojo text-white">
+        <h5 class=" modal-title">Subir archivo</h5>
+      </div>
+      <div class="modal-body">
+        <form id="uploadForm">
+          <input type="file" name="file" id="file">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary close">Cerrar</button>
+        <button type="submit" class="btn btn-primary" form="uploadForm">Subir archivo</button>
+      </div>
     </div>
   </div>
+</div>
 </div>
 
 <!-- Modal para el éxito de la carga -->
