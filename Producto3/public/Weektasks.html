@@ -173,36 +173,48 @@
 
 
 
-
-
 <!-- Modal archivo -->
-<div id="uploadModal" class="modal fade" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header color-rojo text-white">
-        <h5 class=" modal-title">Subir archivo</h5>
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadModalLabel">Subir archivo</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
         <form id="uploadForm">
-          <input type="file" name="file" id="file">
+          <div class="mb-3">
+            <input type="file" id="fileInput" name="file">
+          </div>
+          <div class="modal-footer">
+            <button type="button" id="uploadButton" class="btn btn-success">Subir archivo</button>
+          </div>
         </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary close">Cerrar</button>
-        <button type="submit" class="btn btn-primary" form="uploadForm">Subir archivo</button>
       </div>
     </div>
   </div>
 </div>
-</div>
+
+
 
 <!-- Modal para el éxito de la carga -->
-<div id="uploadSuccessModal" style="display: none;">
-  <div>
-    <p>Archivo subido correctamente.</p>
-    <button id="closeSuccessModal">Cerrar</button>
+<div class="modal fade" id="uploadSuccessModal" tabindex="-1" aria-labelledby="uploadSuccessModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadSuccessModalLabel">Archivo subido correctamente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <p>El archivo ha sido subido correctamente.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="closeSuccessModal" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
   </div>
 </div>
+
 
 <!-- Modal genérica -->
 <div class="modal fade" id="genericModal" tabindex="-1" aria-labelledby="genericModalLabel" aria-hidden="true">
@@ -246,6 +258,7 @@ aria-hidden="true">
   <script src="./bootstrap/bootstrap.bundle.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="./scripts/create-task.js" type="module"></script>
+  <script src="./scripts/create-file.js" type="module"></script>
   
 </body>
 

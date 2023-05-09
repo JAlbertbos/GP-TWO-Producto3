@@ -11,6 +11,12 @@ const socketIO = require('socket.io');
 
 const app = express();
 
+app.use(fileUpload());
+const fileController = require('./controllers/fileController');
+
+app.post('/upload', fileController.uploadFile);
+
+
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/', (req, res) => {
