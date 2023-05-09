@@ -90,8 +90,8 @@ async function saveWeekToServer(name, numberWeek, priority, year, description, b
         console.error('Error al guardar la semana:', response.error);
         reject(response.error);
       } else {
-        console.log('Respuesta del servidor al crear la semana:', response.createdWeek);
-        resolve(response.createdWeek._id);
+        console.log('Respuesta del servidor al crear la semana:', response.week);
+        resolve(response.week._id);
       }
     });
   });
