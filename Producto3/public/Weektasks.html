@@ -159,12 +159,12 @@
             <input type="text" class="form-control" id="ubicacion" placeholder="Ubicación">
           </div>
           <div class="mb-3">
-            <button id="openModal">Subir archivo</button>
+            <button type="button" id="openModal">Subir archivo</button>
+            <span id="fileUploadStatus" style="display: none;">Archivo a subir: Ninguno</span>
           </div>
           <div class="modal-footer">
             <button type="submit" id="saveButton" class="btn btn-success"><i class="bi bi-check"></i></button>
           </div>
-         
         </form>
       </div>
     </div>
@@ -184,7 +184,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
       <div class="modal-body">
-        <form id="uploadForm">
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
           <div class="mb-3">
             <input type="file" id="fileInput" name="file">
           </div>
@@ -261,6 +261,7 @@ aria-hidden="true">
   <script src="./bootstrap/bootstrap.bundle.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="./scripts/create-task.js" type="module"></script>
+  <script src="./scripts/create-file.js" type="module"></script>
   
 </body>
 

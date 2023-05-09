@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let uploadedFileName = null;
 
+  
+
   const uploadModalElement = document.getElementById("uploadModal");
   const openModal = document.getElementById("openModal");
   const closeModal = document.querySelector(".btn-close");
@@ -13,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   closeModal.addEventListener("click", () => uploadModal.hide());
 
   document.getElementById("uploadButton").addEventListener("click", async () => {
+    
     const fileInput = document.getElementById("fileInput");
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
@@ -26,6 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.success) {
         socket.emit("file_uploaded", data.fileName);
         uploadedFileName = data.fileName;
+        document.getElementById('fileUploadStatus').innerText = `Archivo a subir: ${uploadedFileName}`;
+        document.getElementById('fileUploadStatus').style.display = 'inline'; // Muestra el texto
         uploadModal.hide();
         openUploadSuccessModal();
       } else {
@@ -37,12 +42,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function openUploadSuccessModal() {
+    
     const successModalElement = document.getElementById("uploadSuccessModal");
     const successModal = new bootstrap.Modal(successModalElement);
     successModal.show();
   }
 
   function closeUploadSuccessModal() {
+    
     const successModalElement = document.getElementById("uploadSuccessModal");
     const successModal = new bootstrap.Modal(successModalElement);
     successModal.hide();
