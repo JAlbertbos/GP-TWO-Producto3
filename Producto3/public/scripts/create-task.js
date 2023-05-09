@@ -283,41 +283,6 @@ async function drop(event) {
 window.drop = drop;
 let tarjetaAEditar;
 
-//Funcion de cargar archivos 
-
-const openModalButton = document.getElementById('openModal');
-const uploadModalEl = document.getElementById('uploadModal');
-const uploadModal = new bootstrap.Modal(uploadModalEl);
-
-openModalButton.addEventListener('click', function() {
-  uploadModal.show();
-});
-const uploadForm = document.getElementById('uploadForm');
-
-uploadForm.addEventListener('submit', function(event) {
-  event.preventDefault(); 
-  const formData = new FormData(uploadForm);
-  fetch('/upload', {
-    method: 'POST',
-    body: formData
-  })
-    .then(response => response.json())
-    .then(success => {
-      if (success) {
-        console.log("Archivo subido con éxito");
-        // Cerrar el modal después de subir el archivo
-        uploadModal.hide();
-      }
-    })
-    .catch(error => console.error('Error:', error));
-});
-
-const closeButton = document.querySelector('.close');
-
-closeButton.addEventListener('click', function() {
-  uploadModal.hide();
-});
-
 let selectedDay = "zone-bottom";
 document.querySelectorAll('[data-day]').forEach(button => {
   button.addEventListener('click', function () {
@@ -537,8 +502,9 @@ form.addEventListener('submit', async function (event) {
   }
   form.reset(); // Reiniciar formulario para edición sin bugs!
 });
-document.getElementById('deleteButton')
-  document.addEventListener('click', async function () {
+document
+  .getElementById('deleteButton')
+  .addEventListener('click', async function () {
     const taskId = selectedCard.getAttribute('data-id');
     await deleteTask(taskId); // Elimina la tarea aquí.
     const tarjeta = document.getElementById(`tarjeta-${taskId}`);
@@ -551,4 +517,3 @@ document.getElementById('deleteButton')
     eliminarTareaModal.hide();
   });
 loadTasksFromDatabase();
-
