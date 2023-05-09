@@ -1,5 +1,9 @@
 const WeeksController = require('./controllers/WeeksController');
 const TasksController = require('./controllers/TasksController');
+const ss = require('socket.io-stream');
+const path = require('path');
+const fs = require('fs');
+
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -90,6 +94,8 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
+
+  
     socket.on('disconnect', () => {
       console.log('Client disconnected');
     });
