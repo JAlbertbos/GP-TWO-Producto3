@@ -76,7 +76,7 @@ async function graphqlFetch(query, variables = {}) {
 
     return jsonResponse.data;
   } catch (error) {
-    console.error('Error in graphqlFetch:', error);
+    console.error('Error en graphqlFetch:', error);
     throw error;
   }
 }
