@@ -1,4 +1,39 @@
 const Task = require('../models/Task');
+const multer = require('multer');
+
+// Configurar Multer para almacenar archivos en el sistema de archivos
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/') // Asegúrate de que este directorio exista
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname)
+  }
+})
+
+const upload = multer({ storage: storage });
+
+// Añadir un nuevo endpoint para subir archivos
+exports.uploadFile = upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    const task = await Task.findById(req.params.taskId);
+    
+    // Aquí necesitarías subir tu archivo a donde quieras almacenarlo 
+    // (p.ej., Amazon S3, Google Cloud Storage, etc.) y obtener la URL del archivo.
+    // Esto es solo un ejemplo y no funcionará tal cual está.
+    const fileUrl = await uploadFileToStorage(file);
+
+    // Añadir la URL del archivo a la tarea y guardarla
+    task.fileUrl = fileUrl;
+    await task.save();
+
+    res.status(200).send({ success: true, fileUrl });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ success: false, message: 'Error uploading file' });
+  }
+};
 
 
 exports.getTasks = async ({ weekId }) => {

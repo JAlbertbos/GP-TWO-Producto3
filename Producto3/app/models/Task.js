@@ -39,7 +39,7 @@ const TaskSchema = new mongoose.Schema({
     required: true,
   },
   fileUrl: {
-    type: String,
+    type: Buffer,
   },
 });
 

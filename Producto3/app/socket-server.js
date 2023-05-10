@@ -71,8 +71,22 @@ function setupSocketIO(io) {
     });
     
     socket.on('updateTask', async (data, callback) => {
+      console.log('Datos recibidos para actualizar tarea:', data);
+    
       try {
-        const updatedTask = await TasksController.updateTaskById(data.id, data.updatedData);
+        let updatedData = data.updatedData;
+    
+        // Si se adjunta un archivo, guardarlo en el sistema de archivos y agregar la ruta al objeto de datos actualizado
+        if (updatedData.file) {
+          const filename = `file-${Date.now()}`; // Asegúrate de utilizar un nombre de archivo único para evitar sobrescribir archivos
+    
+          await fs.promises.writeFile(path.join(__dirname, 'uploads', filename), updatedData.file);
+    
+          console.log('OK: Archivo subido');
+          updatedData.filePath = path.join(__dirname, 'uploads', filename); // Agrega la ruta del archivo a los datos actualizados
+        }
+    
+        const updatedTask = await TasksController.updateTaskById(data.id, updatedData);
         io.sockets.emit('updatedTask', updatedTask);
         console.log('OK: Tarea actualizada');
         callback({ success: true, task: updatedTask });
@@ -81,6 +95,7 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
+    
     socket.on('deleteTask', async (data, callback) => {
       try {
         await TasksController.deleteTask(data.id);
@@ -92,6 +107,7 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
+
     socket.on('fileUploaded', (data, callback) => {
       const filename = data.filename || `file-${Date.now()}`;
     

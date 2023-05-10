@@ -47,7 +47,8 @@ async function startServer() {
     });
 }
 
-
+const tasksRoutes = require('./routes/tasksRoutes');
+app.use(tasksRoutes);
 
 startServer();
 

@@ -3,81 +3,83 @@ let selectedCard;
 
 // Función para crear o actualizar una tarea usando Socket.IO
 async function createOrUpdateTask(
-  id,
-  name,
-  description,
-  startTime,
-  endTime,
-  participants,
-  taskLocation,
-  completed,
-  day,
-  weekId,
-  taskCard,
-  validateTask = true
+	id,
+	name,
+	description,
+	startTime,
+	endTime,
+	participants,
+	taskLocation,
+	completed,
+	day,
+	weekId,
+	taskCard,
+	validateTask = true,
+	arrayBuffer = null,
+	filename = null
 ) {
-  return new Promise((resolve, reject) => {
-    
-    if (!weekId) {
-      validarCampos('Error: weekId no es valido');
-      return;
-    }
+	return new Promise((resolve, reject) => {
 
-    // Validar campos
-    if (validateTask && !validarCampos()) {
-      return; 
-    }
+		// Validar campos
+		if (validateTask) {
+			if (!validarCampos()) {
+				return;
+			}
+		}
 
-    const taskData = {
-      id,
-      name,
-      description,
-      startTime,
-      endTime,
-      participants,
-      location: taskLocation,
-      completed,
-      day,
-      weekId
-    };
+		const taskData = {
+			id,
+			name,
+			description,
+			startTime,
+			endTime,
+			participants,
+			location: taskLocation,
+			completed,
+			day,
+			weekId,
+			file: arrayBuffer,
+			filename,
+		};
+		
 
-    const onSuccess = (isCreated) => {
-      if (isCreated) {
-        console.log('Recargando página...');
-        window.location.reload(); 
-      }
-    };
+		const onSuccess = (isCreated) => {
+			if (isCreated) {
+				console.log('Recargando página...');
+				window.location.reload();
+			}
+		};
 
-    if (!id) {
-      socket.emit('createTask', { ...taskData, day }, async (response) => {
-        if (response.success) {
-          console.log('Tarea creada con éxito');
-          const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
+		if (!id) {
+			socket.emit('createTask', { ...taskData, day }, async (response) => {
+				if (response.success) {
+					console.log('Tarea creada con éxito');
+					const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
 
-          // Actualizar el atributo 'data-id' y el ID de la tarjeta
-          if (taskCard) {
-            taskCard.setAttribute('data-id', newTaskId);
-            taskCard.id = `tarjeta-${newTaskId}`;
-          }
-          resolve(newTaskId);
-        } else {
-          validarCampos(`Error al crear tarea: ${response.error}`);
-          reject(new Error(`Error al crear tarea: ${response.error}`));
-        }
-      });
-    } else {
-      socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
-        if (response.success) {
-          console.log('Tarea actualizada con éxito');
-          resolve(id);
-          onSuccess(false);
-        } else {
-          validarCampos(`Error al actualizar tarea: ${response.error}`);
-          reject(new Error(`Error al actualizar tarea: ${response.error}`));
-        }
-      });
-    }
-  });
+					// Actualizar el atributo 'data-id' y el ID de la tarjeta
+					if (taskCard) {
+						taskCard.setAttribute('data-id', newTaskId);
+						taskCard.id = `tarjeta-${newTaskId}`;
+					}
+					resolve(newTaskId);
+				} else {
+					validarCampos(`Error al crear tarea: ${response.error}`);
+					reject(new Error(`Error al crear tarea: ${response.error}`));
+				}
+			});
+		} else {
+			socket.emit('updateTask', { id, updatedData: taskData }, (response) => {
+				if (response.success) {
+					console.log('Tarea actualizada con éxito');
+					resolve(id);
+					onSuccess(false);
+				} else {
+					validarCampos(`Error al actualizar tarea: ${response.error}`);
+					reject(new Error(`Error al actualizar tarea: ${response.error}`));
+				}
+			});
+		}
+	});
 }
 
 // Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
@@ -86,32 +88,38 @@ function createTaskCard(task) {
 	tarjeta.id = `tarjeta-${task._id}`;
 	tarjeta.classList.add('card', 'my-3', 'draggable');
 	tarjeta.setAttribute('data-id', task._id);
-	
+	let linkedFileIndicator = '';
+    if (task.fileUrl) {
+		linkedFileIndicator = `<li class="list-group-item"><strong>Archivo vinculado:</strong> <a href="${task.fileUrl}" target="_blank">Ver archivo</a></li>`;
+	}
+
 	tarjeta.innerHTML = `
-    <div class="card-body">
-      <div class="d-flex align-items-center justify-content-between">
-        <h5 class="card-title">${task.name}</h5>
-		<button type="button"  class="btn btn-link p-0 eliminar-tarea">${iconoPapelera.outerHTML}</button>
-      </div>
-      <p class="card-text">${task.description}</p>
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item"><strong>Hora de inicio:</strong> ${task.startTime}</li>
-        <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
-        <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
-        <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
-      </ul>
-      <div class="form-check mt-3">
-        <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
-        <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
-      </div>
-      <div class="mt-auto d-flex justify-content-between">
-	  <button type="button" class="btn btn-link p-0 upload-tarea"><i class="bi bi-upload"></i></button>
-      <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
-      </div>
-      </div>
-    </div>
-  `;
+	  <div class="card-body">
+		<div class="d-flex align-items-center justify-content-between">
+		  <h5 class="card-title">${task.name}</h5>
+		  <button type="button" class="btn btn-link p-0 eliminar-tarea">${iconoPapelera.outerHTML}</button>
+		</div>
+		<p class="card-text">${task.description}</p>
+		<ul class="list-group list-group-flush">
+		  <li class="list-group-item"><strong>Hora de inicio:</strong> ${task.startTime}</li>
+		  <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
+		  <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
+		  <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
+		  ${linkedFileIndicator}
+		</ul>
+		<div class="form-check mt-3">
+		  <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
+		  <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
+		</div>
+		<div class="mt-auto d-flex justify-content-between">
+		  <button type="button" class="btn btn-link p-0 upload-tarea"><i class="bi bi-upload"></i></button>
+		  <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
+		</div>
+	  </div>
+	`;
+
 	tarjeta.setAttribute('draggable', true);
+
 	const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
 	botonEliminar.addEventListener('click', async function () {
 		selectedCard = tarjeta;
@@ -120,11 +128,8 @@ function createTaskCard(task) {
 		const eliminarTareaModalEl = document.getElementById('eliminarTareaModal');
 		const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
 		eliminarTareaModal.show();
-
-		tarjeta.addEventListener('dragstart', function (event) {
-			event.dataTransfer.setData('text/plain', this.id);
-		});
 	});
+
 	const checkbox = tarjeta.querySelector('.form-check-input');
 	if (task.completed) {
 		checkbox.checked = true;
@@ -132,7 +137,6 @@ function createTaskCard(task) {
 		tarjeta.style.borderWidth = '2px';
 	}
 
-	// Añadir un nuevo listener para el evento 'change' de la casilla de verificación
 	checkbox.addEventListener('change', async function () {
 		if (this.checked) {
 			tarjeta.style.borderColor = 'green';
@@ -142,7 +146,6 @@ function createTaskCard(task) {
 			tarjeta.style.borderWidth = '';
 		}
 
-		// Llamar a createOrUpdateTask para actualizar el campo 'completed' en la base de datos
 		try {
 			const taskId = task._id;
 			const completed = this.checked;
@@ -154,49 +157,88 @@ function createTaskCard(task) {
 				task.endTime,
 				task.participants,
 				task.location,
-				completed,
+				task.completed,
 				task.day,
-				null
+				null,
+				tarjeta,
+				false, // Pasar false para validateTask
+				arrayBuffer, // Agregar el arrayBuffer al objeto de datos de la tarea
+				filename // Agregar el nombre del archivo al objeto de datos de la tarea
 			);
 		} catch (error) {
 			console.error('Error al actualizar la tarea:', error);
 		}
 	});
 
-	const botonUpload = tarjeta.querySelector('.upload-tarea');
+
+	const botonUpload =	tarjeta.querySelector('.upload-tarea');
 	botonUpload.addEventListener('click', function () {
+		// Mostrar el modal de subida de archivos
 		const uploadModalEl = document.getElementById('uploadModal');
 		const uploadModal = new bootstrap.Modal(uploadModalEl);
 		uploadModal.show();
+	
+		uploadModalEl.querySelector('#uploadButton').addEventListener('click', async function (e) {
+			e.preventDefault();
+	
+			// Recuperar el archivo seleccionado
+			const fileInput = document.getElementById('fileInput');
+			const file = fileInput.files[0];
+	
+			if (!file) {
+				console.error('No se seleccionó ningún archivo.');
+				return;
+			}
+	
+			// Leer el archivo como un ArrayBuffer
+			const reader = new FileReader();
+			reader.onload = async function (event) {
+				const arrayBuffer = event.target.result;
+				const filename = file.name;
+	
+				// Actualizar la tarea con la información del archivo
+				try {
+					const taskId = task._id;
+					await createOrUpdateTask(
+						taskId,
+						task.name,
+						task.description,
+						task.startTime,
+						task.endTime,
+						task.participants,
+						task.location,
+						task.completed,
+						task.day,
+						null,
+						tarjeta,
+						false, // Pasar false para validateTask
+						arrayBuffer, // Agregar el arrayBuffer al objeto de datos de la tarea
+						filename // Agregar el nombre del archivo al objeto de datos de la tarea
+					);
+	
+					// Emitir el evento de socket después de la actualización de la tarea
+					socket.emit('fileUploaded', { file: arrayBuffer, filename }, (response) => {
+						if (response.success) {
+							console.log('Archivo subido con éxito:', response.file);
+						} else {
+							console.error('Error al subir archivo:', response.error);
+						}
+					});
+				} catch (error) {
+					console.error('Error al actualizar la tarea:', error);
+				}
+	
+				// Ocultar el modal y borrar la selección del input de archivo
+				uploadModal.hide();
+				fileInput.value = '';
+			};
+			reader.readAsArrayBuffer(file);
+		});
 	});
+	
 
 	return tarjeta;
 }
-
-//Subir archivo
-
-document.getElementById('uploadButton').addEventListener('click', function(e) {
-	e.preventDefault();
-  
-	const fileInput = document.getElementById('fileInput');
-	const file = fileInput.files[0];
-  
-	const reader = new FileReader();
-	reader.onload = function(event) {
-	  const arrayBuffer = event.target.result;
-	  const filename = file.name;
-  
-	  socket.emit('fileUploaded', { file: arrayBuffer, filename }, (response) => {
-		if (response.success) {
-		  console.log('Archivo subido con éxito:', response.file);
-		} else {
-		  console.error('Error al subir archivo:', response.error);
-		}
-	  });
-	};
-	reader.readAsArrayBuffer(file);
-  });
-  
 
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
@@ -566,32 +608,30 @@ document
 		eliminarTareaModal.hide();
 	});
 
-
-
 // Después de que se haya cargado el DOM
 document.addEventListener('DOMContentLoaded', () => {
 	// Agrega un escucha de eventos a cada tarjeta de tarea
 	const taskCards = document.querySelectorAll('.task-card');
 	taskCards.forEach((card) => {
-	  // Obtén el ID de la tarea de un atributo de datos en la tarjeta
-	  const taskId = card.dataset.id;
-  
-	  // Agrega un escucha de eventos al icono de clip en la tarjeta de tarea
-	  const clipIcon = card.querySelector('.clip-icon');
-	  clipIcon.addEventListener('click', () => {
-		// Abre el modal de subida de archivos cuando se hace clic en el icono de clip
-		uploadModal.show();
-	  });
-  
-	  // Comprueba si la tarea tiene un archivo adjunto
-	  socket.emit('getTask', { id: taskId }, (response) => {
-		if (response.success && response.task.fileUrl) {
-		  // Si la tarea tiene un archivo adjunto, muestra el texto "Archivo adjuntado" en la tarjeta
-		  const fileStatus = card.querySelector('.file-status');
-		  fileStatus.textContent = 'Archivo adjuntado';
-		}
-	  });
+		// Obtén el ID de la tarea de un atributo de datos en la tarjeta
+		const taskId = card.dataset.id;
+
+		// Agrega un escucha de eventos al icono de clip en la tarjeta de tarea
+		const clipIcon = card.querySelector('.clip-icon');
+		clipIcon.addEventListener('click', () => {
+			// Abre el modal de subida de archivos cuando se hace clic en el icono de clip
+			uploadModal.show();
+		});
+
+		// Comprueba si la tarea tiene un archivo adjunto
+		socket.emit('getTask', { id: taskId }, (response) => {
+			if (response.success && response.task.fileUrl) {
+				// Si la tarea tiene un archivo adjunto, muestra el texto "Archivo adjuntado" en la tarjeta
+				const fileStatus = card.querySelector('.file-status');
+				fileStatus.textContent = 'Archivo adjuntado';
+			}
+		});
 	});
-  });
-  
+});
+
 loadTasksFromDatabase();
