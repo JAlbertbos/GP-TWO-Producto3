@@ -1,49 +1,35 @@
-const Task = require('../models/Task');
-const fs = require('fs');
-const path = require('path');
-
-const uploadFolder = path.join(__dirname, '..', 'uploads');
-
-exports.uploadFile = (req, res) => {
-  if (!req.files || Object.keys(req.files).length === 0) {
-    return res.status(400).send('No se subió ningún archivo.');
+exports.uploadFile = async (data) => {
+  if (!data.files || Object.keys(data.files).length === 0) {
+    throw new Error('No se subió ningún archivo.');
   }
 
-  const file = req.files.file;
+  if (!data.files.file) {
+    throw new Error('No se encontró el archivo "file".');
+  }
+
+  const file = data.files.file;
   const uploadPath = path.join(uploadFolder, file.name);
 
-  file.mv(uploadPath, async (err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).send(err);
-    }
+  // Aquí asumimos que file.mv devuelve una promesa. Si no es así, tendrás que manejar esto de manera diferente.
+  await file.mv(uploadPath);
 
-    // Renombrar el archivo para agregarle un ID único
-    const extension = path.extname(uploadPath);
-    const fileName = path.basename(uploadPath, extension);
-    const newFileName = `${fileName}-${Date.now()}${extension}`;
-    const newFilePath = path.join(uploadFolder, newFileName);
+  // Renombrar el archivo para agregarle un ID único
+  const extension = path.extname(uploadPath);
+  const fileName = path.basename(uploadPath, extension);
+  const newFileName = `${fileName}-${Date.now()}${extension}`;
+  const newFilePath = path.join(uploadFolder, newFileName);
 
-    fs.rename(uploadPath, newFilePath, async (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).send(err);
-      }
+  await fs.promises.rename(uploadPath, newFilePath);
 
-      try {
-        const task = await Task.findById(req.body.taskId);
-        if (!task) {
-          return res.status(404).send('La tarea no existe.');
-        }
+  // Aquí asumimos que tienes una función Task.findById que devuelve una promesa. 
+  // Si no es así, tendrás que manejar esto de manera diferente.
+  const task = await Task.findById(data.body.taskId);
+  if (!task) {
+    throw new Error('La tarea no existe.');
+  }
 
-        task.fileUrl = newFileName;
-        await task.save();
+  task.fileUrl = newFileName;
+  await task.save();
 
-        res.json({ success: true, message: 'Archivo subido correctamente.', fileName: newFileName });
-      } catch (error) {
-        console.error('Error al guardar el nombre del archivo en la base de datos:', error);
-        return res.status(500).send('Error al guardar el nombre del archivo en la base de datos.');
-      }
-    });
-  });
+  return { success: true, message: 'Archivo subido correctamente.', fileName: newFileName };
 };

@@ -93,17 +93,26 @@ function setupSocketIO(io) {
       }
     });
 
-    socket.on('file_uploaded', async (data, callback) => {
+    socket.on('file_uploaded', async (fileName, taskId, callback) => {
+      const data = {
+        files: {
+          file: fileName 
+        },
+        body: {
+          taskId
+        }
+      };
+    
       try {
         const fileData = await FileController.uploadFile(data);
         console.log('OK: Fichero Adjuntado correctamente');
-        if(typeof callback === 'function'){
+        if (typeof callback === 'function') {
           callback({ success: true, fileData });
         }
       } catch (error) {
         console.error('Error al adjuntar el fichero:', error);
-        if(typeof callback === 'function'){
-          callback({ success: false, error });
+        if (typeof callback === 'function') {
+          callback({ success: false, error: error.message });
         }
       }
     });

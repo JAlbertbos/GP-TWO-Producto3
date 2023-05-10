@@ -9,6 +9,13 @@ document.getElementById('fileInput').addEventListener('change', (event) => {
 // Función para subir un archivo
 async function uploadFile(taskId) {
 	return new Promise((resolve, reject) => {
+		// Comprobar si pendingFile existe
+		if (!pendingFile) {
+			console.error('No hay archivo seleccionado para subir.');
+			reject(new Error('No hay archivo seleccionado para subir.'));
+			return;
+		}
+		
 		const formData = new FormData();
 		formData.append('file', pendingFile);
 		fetch('/upload', {
@@ -32,6 +39,7 @@ async function uploadFile(taskId) {
 			});
 	});
 }
+
 
 // Función para crear o actualizar una tarea usando Socket.IO
 async function createOrUpdateTask(
@@ -183,6 +191,7 @@ async function loadTasksFromDatabase() {
 // Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 
 function createTaskCard(task) {
+	console.log(task)
 	const tarjeta = document.createElement('div');
 	  tarjeta.id = `tarjeta-${task._id}`;
 	  tarjeta.classList.add('card', 'my-3', 'draggable');
