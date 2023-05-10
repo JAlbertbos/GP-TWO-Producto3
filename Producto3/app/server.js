@@ -47,33 +47,7 @@ async function startServer() {
     });
 }
 
-const multer = require('multer');
 
-// Configuración de multer para almacenar archivos en el directorio 'uploads'
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, './uploads');
-  },
-  filename: function(req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  },
-});
-
-const upload = multer({ storage: storage });
-
-// Ruta para manejar la subida de archivos
-app.post('/upload', upload.single('file'), (req, res, next) => {
-  const file = req.file;
-
-  if (!file) {
-    return res.status(400).json({ error: 'Por favor sube un archivo' });
-  }
-
-  res.status(200).json({ message: 'Archivo subido correctamente', file: file });
-
-  // Emitir un mensaje con socket.io
-  io.emit('fileUploaded', { message: 'Archivo subido correctamente', file: file });
-});
 
 startServer();
 

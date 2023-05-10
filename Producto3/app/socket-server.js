@@ -1,5 +1,7 @@
 const WeeksController = require('./controllers/WeeksController');
 const TasksController = require('./controllers/TasksController');
+const fs = require('fs');
+const path = require('path');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -90,9 +92,18 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
-    socket.on('fileUploaded', function(data) {
-      console.log('Mensaje del servidor:', data.message);
-      console.log('Archivo subido:', data.file);
+    socket.on('fileUploaded', (data, callback) => {
+      const filename = data.filename || `file-${Date.now()}`;
+    
+      fs.writeFile(path.join(__dirname, 'uploads', filename), data.file, (error) => {
+        if (error) {
+          console.error('Error al subir archivo:', error);
+          callback({ success: false, error });
+        } else {
+          console.log('OK: Archivo subido');
+          callback({ success: true, file: filename });
+        }
+      });
     });
     
 

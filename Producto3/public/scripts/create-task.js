@@ -180,21 +180,21 @@ document.getElementById('uploadButton').addEventListener('click', function(e) {
   
 	const fileInput = document.getElementById('fileInput');
 	const file = fileInput.files[0];
-	const formData = new FormData();
   
-	formData.append('file', file);
+	const reader = new FileReader();
+	reader.onload = function(event) {
+	  const arrayBuffer = event.target.result;
+	  const filename = file.name;
   
-	fetch('/upload', {
-	  method: 'POST',
-	  body: formData,
-	})
-	  .then(response => response.json())
-	  .then(data => {
-		console.log('Archivo subido correctamente:', data);
-	  })
-	  .catch(error => {
-		console.error('Error:', error);
+	  socket.emit('fileUploaded', { file: arrayBuffer, filename }, (response) => {
+		if (response.success) {
+		  console.log('Archivo subido con éxito:', response.file);
+		} else {
+		  console.error('Error al subir archivo:', response.error);
+		}
 	  });
+	};
+	reader.readAsArrayBuffer(file);
   });
   
 
