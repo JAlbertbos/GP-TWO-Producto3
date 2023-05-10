@@ -18,7 +18,8 @@ async function uploadFile(taskId) {
 		
 		const formData = new FormData();
 		formData.append('file', pendingFile);
-		fetch('/upload', {
+		fetch('/fileUpload', {
+			// Ruta de tu endpoint de subida de archivos
 			method: 'POST',
 			body: formData,
 		})
@@ -140,6 +141,7 @@ async function createOrUpdateTask(
     }
   });
 }
+
 
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
