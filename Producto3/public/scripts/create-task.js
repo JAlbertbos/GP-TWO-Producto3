@@ -1,37 +1,5 @@
 const socket = io();
 let selectedCard;
-let pendingFile = null;
-
-document.getElementById('fileInput').addEventListener('change', (event) => {
-	pendingFile = event.target.files[0];
-});
-
-// Función para subir un archivo
-async function uploadFile(taskId) {
-	return new Promise((resolve, reject) => {
-		const formData = new FormData();
-		formData.append('file', pendingFile);
-		fetch('/upload', {
-			method: 'POST',
-			body: formData,
-		})
-			.then((response) => response.json())
-			.then((data) => {
-				if (data.success) {
-					console.log('Archivo subido correctamente.');
-					socket.emit('uploadFile', { taskId, fileName: data.fileName });
-					resolve(data.fileName);
-				} else {
-					console.error(`Error al subir archivo: ${data.error}`);
-					reject(new Error(`Error al subir archivo: ${data.error}`));
-				}
-			})
-			.catch((error) => {
-				console.error(`Error al subir archivo: ${error}`);
-				reject(new Error(`Error al subir archivo: ${error}`));
-			});
-	});
-}
 
 // Función para crear o actualizar una tarea usando Socket.IO
 async function createOrUpdateTask(
@@ -49,7 +17,7 @@ async function createOrUpdateTask(
   validateTask = true
 ) {
   return new Promise((resolve, reject) => {
-    // Comprobar si weekId es válido antes de continuar
+    
     if (!weekId) {
       validarCampos('Error: weekId no es valido');
       return;
@@ -86,32 +54,11 @@ async function createOrUpdateTask(
           console.log('Tarea creada con éxito');
           const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
 
-          if (pendingFile) {
-            try {
-              const fileName = await uploadFile(newTaskId);
-              socket.emit('updateTask', { id: newTaskId, updatedData: { fileUrl: fileName } }, (response) => {
-                if (response.success) {
-                  console.log('Tarea actualizada con éxito');
-                  onSuccess(true);
-                } else {
-                  console.error(`Error al actualizar tarea: ${response.error}`);
-                  reject(new Error(`Error al actualizar tarea: ${response.error}`));
-                }
-              });
-            } catch (error) {
-              console.error(error);
-              reject(error);
-            }
-          } else {
-            onSuccess(true); // Llama a onSuccess con true si no hay archivo pendiente para subir
-          }
-
           // Actualizar el atributo 'data-id' y el ID de la tarjeta
           if (taskCard) {
             taskCard.setAttribute('data-id', newTaskId);
             taskCard.id = `tarjeta-${newTaskId}`;
           }
-
           resolve(newTaskId);
         } else {
           validarCampos(`Error al crear tarea: ${response.error}`);
@@ -133,63 +80,18 @@ async function createOrUpdateTask(
   });
 }
 
-// Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
-async function getTasks(weekId) {
-	return new Promise((resolve, reject) => {
-		socket.emit('getAllTasks', { weekId }, (response) => {
-			if (response.success) {
-				console.log('Carga del servidor:', response);
-				resolve(response.tasks);
-			} else {
-				console.error('Carga del servidor:', response);
-				reject(new Error(`Error en getAllTasks: ${response.error}`));
-			}
-		});
-	});
-}
-// Función para agregar una tarjeta de tarea al DOM en el día correspondiente
-function addTaskToDOM(taskCard, selectedDay) {
-	let dropzone;
-	if (selectedDay) {
-		dropzone = document.querySelector(
-			`.contenedor-dia[data-day="${selectedDay}"] .dropzone`
-		);
-	}
-	if (!dropzone) {
-		dropzone = document.querySelector('.zone-bottom');
-	}
-	if (dropzone) {
-		dropzone.appendChild(taskCard);
-	} else {
-		console.error('Dropzone no encontrada');
-	}
-}
-
-// Función para cargar las tareas de la base de datos y agregarlas al DOM
-async function loadTasksFromDatabase() {
-	const tasks = await getTasks(weekId);
-	for (const task of tasks) {
-		const taskCard = createTaskCard(task);
-		taskCard.addEventListener('dragstart', function (event) {
-			event.dataTransfer.setData('text/plain', this.id);
-		});
-		addTaskToDOM(
-			taskCard,
-			task.day === 'zone-bottom' ? 'zone-bottom' : task.day
-		);
-	}
-}
 // Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 function createTaskCard(task) {
 	const tarjeta = document.createElement('div');
 	tarjeta.id = `tarjeta-${task._id}`;
 	tarjeta.classList.add('card', 'my-3', 'draggable');
 	tarjeta.setAttribute('data-id', task._id);
+	
 	tarjeta.innerHTML = `
     <div class="card-body">
       <div class="d-flex align-items-center justify-content-between">
         <h5 class="card-title">${task.name}</h5>
-        <button type="button"  class="btn btn-link p-0 eliminar-tarea">${iconoPapelera.outerHTML}</button>
+		<button type="button"  class="btn btn-link p-0 eliminar-tarea">${iconoPapelera.outerHTML}</button>
       </div>
       <p class="card-text">${task.description}</p>
       <ul class="list-group list-group-flush">
@@ -202,7 +104,8 @@ function createTaskCard(task) {
         <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
         <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
       </div>
-      <div class="mt-auto d-flex justify-content-end">
+      <div class="mt-auto d-flex justify-content-between">
+	  <button type="button" class="btn btn-link p-0 upload-tarea"><i class="bi bi-upload"></i></button>
       <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
       </div>
       </div>
@@ -259,8 +162,89 @@ function createTaskCard(task) {
 			console.error('Error al actualizar la tarea:', error);
 		}
 	});
+
+	const botonUpload = tarjeta.querySelector('.upload-tarea');
+	botonUpload.addEventListener('click', function () {
+		const uploadModalEl = document.getElementById('uploadModal');
+		const uploadModal = new bootstrap.Modal(uploadModalEl);
+		uploadModal.show();
+	});
+
 	return tarjeta;
 }
+
+//Subir archivo
+
+document.getElementById('uploadButton').addEventListener('click', function(e) {
+	e.preventDefault();
+  
+	const fileInput = document.getElementById('fileInput');
+	const file = fileInput.files[0];
+	const formData = new FormData();
+  
+	formData.append('file', file);
+  
+	fetch('/upload', {
+	  method: 'POST',
+	  body: formData,
+	})
+	  .then(response => response.json())
+	  .then(data => {
+		console.log('Archivo subido correctamente:', data);
+	  })
+	  .catch(error => {
+		console.error('Error:', error);
+	  });
+  });
+  
+
+// Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
+async function getTasks(weekId) {
+	return new Promise((resolve, reject) => {
+		socket.emit('getAllTasks', { weekId }, (response) => {
+			if (response.success) {
+				console.log('Carga del servidor:', response);
+				resolve(response.tasks);
+			} else {
+				console.error('Carga del servidor:', response);
+				reject(new Error(`Error en getAllTasks: ${response.error}`));
+			}
+		});
+	});
+}
+// Función para agregar una tarjeta de tarea al DOM en el día correspondiente
+function addTaskToDOM(taskCard, selectedDay) {
+	let dropzone;
+	if (selectedDay) {
+		dropzone = document.querySelector(
+			`.contenedor-dia[data-day="${selectedDay}"] .dropzone`
+		);
+	}
+	if (!dropzone) {
+		dropzone = document.querySelector('.zone-bottom');
+	}
+	if (dropzone) {
+		dropzone.appendChild(taskCard);
+	} else {
+		console.error('Dropzone no encontrada');
+	}
+}
+
+// Función para cargar las tareas de la base de datos y agregarlas al DOM
+async function loadTasksFromDatabase() {
+	const tasks = await getTasks(weekId);
+	for (const task of tasks) {
+		const taskCard = createTaskCard(task);
+		taskCard.addEventListener('dragstart', function (event) {
+			event.dataTransfer.setData('text/plain', this.id);
+		});
+		addTaskToDOM(
+			taskCard,
+			task.day === 'zone-bottom' ? 'zone-bottom' : task.day
+		);
+	}
+}
+
 // Función para eliminar una tarea de la base de datos por ID usando Socket.IO
 async function deleteTask(taskId) {
 	return new Promise((resolve, reject) => {
@@ -581,4 +565,33 @@ document
 			bootstrap.Modal.getInstance(eliminarTareaModalEl);
 		eliminarTareaModal.hide();
 	});
+
+
+
+// Después de que se haya cargado el DOM
+document.addEventListener('DOMContentLoaded', () => {
+	// Agrega un escucha de eventos a cada tarjeta de tarea
+	const taskCards = document.querySelectorAll('.task-card');
+	taskCards.forEach((card) => {
+	  // Obtén el ID de la tarea de un atributo de datos en la tarjeta
+	  const taskId = card.dataset.id;
+  
+	  // Agrega un escucha de eventos al icono de clip en la tarjeta de tarea
+	  const clipIcon = card.querySelector('.clip-icon');
+	  clipIcon.addEventListener('click', () => {
+		// Abre el modal de subida de archivos cuando se hace clic en el icono de clip
+		uploadModal.show();
+	  });
+  
+	  // Comprueba si la tarea tiene un archivo adjunto
+	  socket.emit('getTask', { id: taskId }, (response) => {
+		if (response.success && response.task.fileUrl) {
+		  // Si la tarea tiene un archivo adjunto, muestra el texto "Archivo adjuntado" en la tarjeta
+		  const fileStatus = card.querySelector('.file-status');
+		  fileStatus.textContent = 'Archivo adjuntado';
+		}
+	  });
+	});
+  });
+  
 loadTasksFromDatabase();

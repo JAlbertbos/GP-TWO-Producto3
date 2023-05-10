@@ -90,6 +90,12 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
+    socket.on('fileUploaded', function(data) {
+      console.log('Mensaje del servidor:', data.message);
+      console.log('Archivo subido:', data.file);
+    });
+    
+
     socket.on('disconnect', () => {
       //console.log('Client disconnected');
     });

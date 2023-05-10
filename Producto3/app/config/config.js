@@ -1,6 +1,5 @@
 const tasksController = require('../controllers/TasksController');
 const weeksController = require('../controllers/WeeksController');
-const fileController = require('../controllers/fileController');
 
 const typeDefs = `#graphql
 scalar ID
@@ -100,3 +99,5 @@ module.exports = {
     mongoURI,
     PORT,
 };
+
+

@@ -8,18 +8,6 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/database');
 const http = require('http');
 const socketIO = require('socket.io');
-const multer = require('multer');
-
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function(req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-
-const upload = multer({ storage: storage });
 
 const app = express();
 
@@ -32,17 +20,6 @@ app.get('/', (req, res) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Nueva ruta POST para manejar la subida de archivos
-app.post('/upload', upload.single('file'), (req, res) => {
-  // Comprueba si el archivo se subió correctamente
-  if (req.file) {
-    // Si se subió correctamente, envía una respuesta con el nombre del archivo
-    res.json({ success: true, fileName: req.file.filename });
-  } else {
-    // Si hubo un error al subir el archivo, envía una respuesta con un mensaje de error
-    res.status(500).json({ success: false, error: 'Error al subir el archivo.' });
-  }
-});
 
 const server = new ApolloServer({
   typeDefs,
@@ -69,6 +46,34 @@ async function startServer() {
       console.error("Error de conexión a MongoDB:", error);
     });
 }
+
+const multer = require('multer');
+
+// Configuración de multer para almacenar archivos en el directorio 'uploads'
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, './uploads');
+  },
+  filename: function(req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// Ruta para manejar la subida de archivos
+app.post('/upload', upload.single('file'), (req, res, next) => {
+  const file = req.file;
+
+  if (!file) {
+    return res.status(400).json({ error: 'Por favor sube un archivo' });
+  }
+
+  res.status(200).json({ message: 'Archivo subido correctamente', file: file });
+
+  // Emitir un mensaje con socket.io
+  io.emit('fileUploaded', { message: 'Archivo subido correctamente', file: file });
+});
 
 startServer();
 
