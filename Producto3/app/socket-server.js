@@ -1,5 +1,7 @@
 const WeeksController = require('./controllers/WeeksController');
 const TasksController = require('./controllers/TasksController');
+const FileController = require('./controllers/fileController');
+
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -90,6 +92,25 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
+
+    socket.on('file_uploaded', async (data, callback) => {
+      try {
+        const fileData = await FileController.uploadFile(data);
+        console.log('OK: Fichero Adjuntado correctamente');
+        if(typeof callback === 'function'){
+          callback({ success: true, fileData });
+        }
+      } catch (error) {
+        console.error('Error al adjuntar el fichero:', error);
+        if(typeof callback === 'function'){
+          callback({ success: false, error });
+        }
+      }
+    });
+    
+    
+
+
     socket.on('disconnect', () => {
       //console.log('Client disconnected');
     });
