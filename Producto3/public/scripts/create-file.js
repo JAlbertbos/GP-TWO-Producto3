@@ -3,8 +3,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let uploadedFileName = null;
 
-  
-
   const uploadModalElement = document.getElementById("uploadModal");
   const openModal = document.getElementById("openModal");
   const closeModal = document.querySelector(".btn-close");
