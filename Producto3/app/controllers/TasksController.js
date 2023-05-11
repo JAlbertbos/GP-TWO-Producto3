@@ -1,10 +1,10 @@
 const Task = require('../models/Task');
 const multer = require('multer');
 
-// Configurar Multer para almacenar archivos en el sistema de archivos
+// Configuración Multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/') // Asegúrate de que este directorio exista
+    cb(null, 'uploads/')
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname)
@@ -19,17 +19,15 @@ exports.uploadFile = upload.single('file'), async (req, res) => {
     const file = req.file;
     const task = await Task.findById(req.params.taskId);
 
-    // obtén la ruta del archivo
     const fileUrl = file.path;
 
-    // Añadir la URL del archivo a la tarea y guardarla
     task.fileUrl = fileUrl;
     await task.save();
 
     res.status(200).send({ success: true, fileUrl });
   } catch (err) {
     console.error(err);
-    res.status(500).send({ success: false, message: 'Error uploading file' });
+    res.status(500).send({ success: false, message: 'Error subida de archivo' });
   }
 };
 
@@ -39,7 +37,7 @@ exports.getTasks = async ({ weekId }) => {
     const tasks = await Task.find({ week: weekId });
     return tasks;
   } catch (error) {
-    console.error('Error fetching tasks:', error);
+    console.error('Error al obtener tareas:', error);
   }
 };
 
@@ -49,7 +47,7 @@ exports.getTaskById = async (id) => {
     return await Task.findById(id).populate("week");
   } catch (err) {
     console.error(err);
-    throw new Error("Error retrieving task");
+    throw new Error("Error al recuperar la tarea");
   }
 };
 
@@ -61,7 +59,7 @@ exports.createTask = async (taskData) => {
     return await newTask.save();
   } catch (err) {
     console.error(err);
-    throw new Error("Error creating task");
+    throw new Error("Error al crear la tarea");
   }
 };
 
@@ -72,7 +70,7 @@ exports.updateTaskById = async (id, updatedData) => {
     return await Task.findByIdAndUpdate(id, updatedData, { new: true });
   } catch (err) {
     console.error(err);
-    throw new Error("Error updating task");
+    throw new Error("Error al actualizar la tarea");
   }
 };
 
@@ -82,6 +80,6 @@ exports.deleteTask = async (id) => {
     await Task.findByIdAndRemove(id);
   } catch (err) {
     console.error(err);
-    throw new Error("Error deleting task");
+    throw new Error("Error al borrar la tarea");
   }
 };
