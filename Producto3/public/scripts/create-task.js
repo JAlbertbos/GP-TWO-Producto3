@@ -155,7 +155,7 @@ function createTaskCard(task) {
 			if (task.fileUrl) {
 				task.fileUrl = task.fileUrl;
 			}
-	
+			//ERROR AQUI
 			await createOrUpdateTask(
 				taskId,
 				task.name,
@@ -348,6 +348,7 @@ async function drop(event) {
 		day: newDay,
 	};
 
+	//ERROR
 	await createOrUpdateTask(
 		taskData.id,
 		null,
