@@ -19,14 +19,14 @@ async function createOrUpdateTask(
 	filename = null
 ) {
 	return new Promise((resolve, reject) => {
-		// Validar campos
+		
 		if (validateTask) {
 			if (!validarCampos()) {
 				return;
 			}
 		}
 
-		// Solo añade los campos que no son null al objeto de datos de la tarea
+		
 		const taskData = {};
 		if (name !== null) taskData.name = name;
 		if (description !== null) taskData.description = description;
@@ -51,9 +51,8 @@ async function createOrUpdateTask(
 			socket.emit('createTask', { ...taskData, day }, async (response) => {
 				if (response.success) {
 					console.log('Tarea creada con éxito');
-					const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
+					const newTaskId = response.task.id; 
 
-					// Actualizar el atributo 'data-id' y el ID de la tarjeta
 					if (taskCard) {
 						taskCard.setAttribute('data-id', newTaskId);
 						taskCard.id = `tarjeta-${newTaskId}`;
@@ -77,7 +76,7 @@ async function createOrUpdateTask(
 		}
 	});
 }
-// Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
+// Función para crear una tarjeta de tarea en el DOM
 
 function createTaskCard(task) {
 	const tarjeta = document.createElement('div');
@@ -151,7 +150,6 @@ function createTaskCard(task) {
 			const taskId = task._id;
 			const completed = this.checked;
 	
-			// Actualizar las propiedades del objeto task antes de llamar a createOrUpdateTask
 			task.completed = completed;
 			if (task.fileUrl) {
 				task.fileUrl = task.fileUrl;
@@ -312,11 +310,12 @@ async function deleteTask(taskId) {
 		});
 	});
 }
-// Función para permitir soltar elementos en una zona de soltado (dropzone)
+// Función para permitir soltar elementos en una zona (dropzone)
 function allowDrop(event) {
 	event.preventDefault();
 }
 window.allowDrop = allowDrop;
+
 // Función para manejar el evento de soltar (drop) de una tarjeta de tarea en una zona de soltado
 async function drop(event) {
 	let dropzoneAncestor = event.target.closest('.dropzone');
@@ -343,7 +342,6 @@ async function drop(event) {
 		return;
 	}
 
-	// Solo envía el ID de la tarea y el nuevo día
 	const taskData = {
 		id: element.getAttribute('data-id'),
 		day: newDay,
@@ -412,7 +410,7 @@ function validarCampos() {
 		mensajeError = 'La ubicación no puede estar vacía.';
 	}
 
-	// Verificar si mensajeError no está vacío
+	
 	if (mensajeError) {
 		document.getElementById('genericModalMessage').innerText = mensajeError;
 		const modal = new bootstrap.Modal(document.getElementById('genericModal'));
