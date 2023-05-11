@@ -126,6 +126,8 @@ async function updateWeekOnServer(id, name, numberWeek, priority, year, descript
   });
 }
 
+
+
 //DOMsito 
 
 function removeExistingCards() {

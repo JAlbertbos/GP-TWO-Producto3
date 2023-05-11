@@ -45,6 +45,7 @@ function setupSocketIO(io) {
           callback({ success: false, error: error.message });
         })
     });
+    
     // TAREAS
     socket.on('getAllTasks', async (data, callback) => {
       try {
