@@ -60,6 +60,7 @@ async function createOrUpdateTask(
 						taskCard.id = `tarjeta-${newTaskId}`;
 					}
 					resolve(newTaskId);
+					onSuccess(true); 
 				} else {
 					validarCampos(`Error al crear tarea: ${response.error}`);
 					reject(new Error(`Error al crear tarea: ${response.error}`));
