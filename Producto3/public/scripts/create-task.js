@@ -26,6 +26,7 @@ async function createOrUpdateTask(
 			}
 		}
 
+		// Solo añade los campos que no son null al objeto de datos de la tarea
 		const taskData = {};
 		if (name !== null) taskData.name = name;
 		if (description !== null) taskData.description = description;
@@ -50,7 +51,7 @@ async function createOrUpdateTask(
 			socket.emit('createTask', { ...taskData, day }, async (response) => {
 				if (response.success) {
 					console.log('Tarea creada con éxito');
-					const newTaskId = response.task.id;
+					const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
 
 					// Actualizar el atributo 'data-id' y el ID de la tarjeta
 					if (taskCard) {
@@ -76,13 +77,14 @@ async function createOrUpdateTask(
 		}
 	});
 }
-// Función para crear una tarjeta de tarea en el DOM
+// Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 
 function createTaskCard(task) {
 	const tarjeta = document.createElement('div');
 	tarjeta.id = `tarjeta-${task._id}`;
 	tarjeta.classList.add('card', 'my-3', 'draggable');
 	tarjeta.setAttribute('data-id', task._id);
+	
 	let uploadButtonOrFileLink = `
 		<button type="button" class="btn btn-link p-0 upload-tarea"><i class="bi bi-upload"> </i>Subir archivo</button>
 	`;
@@ -149,7 +151,7 @@ function createTaskCard(task) {
 			const taskId = task._id;
 			const completed = this.checked;
 	
-		
+			// Actualizar las propiedades del objeto task antes de llamar a createOrUpdateTask
 			task.completed = completed;
 			if (task.fileUrl) {
 				task.fileUrl = task.fileUrl;
@@ -365,6 +367,7 @@ async function drop(event) {
 	dropzoneAncestor.appendChild(element);
 }
 window.drop = drop;
+
 let tarjetaAEditar;
 
 let selectedDay = 'zone-bottom';
@@ -418,46 +421,15 @@ function validarCampos() {
 	}
 	return true;
 }
+
 form.addEventListener('submit', async function (event) {
 	event.preventDefault();
 	if (!validarCampos()) {
 		return;
 	}
-	if (tarjetaAEditar) {
-		tarjetaAEditar.querySelector('.card-title').innerText = nombreTarea.value;
-		tarjetaAEditar.querySelector('.card-text').innerText = descripcion.value;
-		tarjetaAEditar.querySelector(
-			'.list-group-item:nth-child(1)'
-		).innerText = `Hora de inicio: ${horaInicio.value}`;
-		tarjetaAEditar.querySelector(
-			'.list-group-item:nth-child(2)'
-		).innerText = `Hora de final: ${horaFinal.value}`;
-		tarjetaAEditar.querySelector(
-			'.list-group-item:nth-child(3)'
-		).innerText = `Participantes: ${participantes.value}`;
-		tarjetaAEditar.querySelector(
-			'.list-group-item:nth-child(4)'
-		).innerText = `Ubicación: ${ubicacion.value}`;
-		tarjetaAEditar = null;
 		const modal = bootstrap.Modal.getInstance(
 			document.querySelector('#formtask')
 		);
-		await createOrUpdateTask(
-			tarjetaAEditar.getAttribute('data-id'),
-			nombreTarea.value,
-			descripcion.value,
-			horaInicio.value,
-			horaFinal.value,
-			participantes.value,
-			ubicacion.value,
-			completed.checked,
-			selectedDay,
-			weekId,
-			adjunto.files[0]
-		);
-		modal.hide();
-		form.reset();
-	} else {
 		const newTaskId = await createOrUpdateTask(
 			null,
 			nombreTarea.value,
@@ -470,130 +442,15 @@ form.addEventListener('submit', async function (event) {
 			selectedDay,
 			weekId
 		);
-
-		const task = {
-			_id: newTaskId,
-			name: nombreTarea.value,
-			description: descripcion.value,
-			startTime: horaInicio.value,
-			endTime: horaFinal.value,
-			participants: participantes.value,
-			location: ubicacion.value,
-			completed: completed.checked,
-			day: selectedDay,
-		};
-		const taskCard = createTaskCard(task);
-		taskCard.addEventListener('dragstart', function (event) {
-			event.dataTransfer.setData('text/plain', this.id);
-		});
-		addTaskToDOM(taskCard, selectedDay);
-		const tarjeta = document.createElement('div');
-		const idTarjeta = Date.now().toString();
-		tarjeta.id = `tarjeta-${idTarjeta}`;
-		tarjeta.classList.add('card', 'my-3', 'draggable');
-		tarjeta.setAttribute('data-id', newTaskId);
-		tarjeta.id = `tarjeta-${newTaskId}`;
-		tarjeta.innerHTML = `
-    <div class="card-body">
-      <div class="d-flex align-items-center justify-content-between">
-        <h5 class="card-title">${nombreTarea.value}</h5>
-        <button type="button"  class="btn btn-link p-0 eliminar-tarea">${iconoPapelera.outerHTML}</button>
-      </div>
-      <p class="card-text">${descripcion.value}</p>
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item"><strong>Hora de inicio:</strong> ${horaInicio.value}</li>
-        <li class="list-group-item"><strong>Hora de final:</strong> ${horaFinal.value}</li>
-        <li class="list-group-item"><strong>Participantes:</strong> ${participantes.value}</li>
-        <li class="list-group-item"><strong>Ubicación:</strong> ${ubicacion.value}</li>
-      </ul>
-      <div class="form-check mt-3">
-        <input class="form-check-input" type="checkbox" id="tarea-${nombreTarea.value}">
-        <label class="form-check-label" for="tarea-${nombreTarea.value}">Tarea terminada</label>
-      </div>
-      <div class="mt-auto d-flex justify-content-end">
-      <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
-      </div>
-      </div>
-    </div>
-  `;
-		tarjeta.setAttribute('draggable', true);
-		tarjeta.addEventListener('dragstart', function (event) {
-			event.dataTransfer.setData('text/plain', this.id);
-		});
-		let dropzone;
-		if (selectedDay) {
-			dropzone = document.querySelector(
-				`.contenedor-dia[data-day="${selectedDay}"] .dropzone`
-			);
-		} else {
-			dropzone = document.querySelector('.contenedor-dia .dropzone');
-		}
-		if (!dropzone) {
-			dropzone = document.querySelector('.zone-bottom');
-		}
-		selectedDay = undefined;
-		const checkbox = tarjeta.querySelector('.form-check-input');
-		checkbox.addEventListener('change', function () {
-			console.log('Checkbox change event triggered');
-
-			if (this.checked) {
-				tarjeta.classList.add('borde-verde');
-			} else {
-				tarjeta.classList.remove('borde-verde');
-			}
-		});
-		const modal = bootstrap.Modal.getInstance(
-			document.querySelector('#formtask')
-		);
 		modal.hide();
 		form.reset();
-		const botonEliminar = tarjeta.querySelector('.eliminar-tarea');
-		botonEliminar.addEventListener('click', async function () {
-			selectedCard = tarjeta;
-			const taskId = selectedCard.getAttribute('data-id');
-			await deleteTask(taskId);
-			const eliminarTareaModalEl =
-				document.getElementById('eliminarTareaModal');
-			const eliminarTareaModal = new bootstrap.Modal(eliminarTareaModalEl);
-			eliminarTareaModal.show();
-		});
-		// Lapiz edicion
-		const botonEditar = tarjeta.querySelector('.editar-tarea');
-		botonEditar.addEventListener('click', function () {
-			tarjetaAEditar = tarjeta;
-			const titulo = tarjeta.querySelector('.card-title').innerText;
-			const desc = tarjeta.querySelector('.card-text').innerText;
-			const horaInicioTexto = tarjeta
-				.querySelector('.list-group-item:nth-child(1)')
-				.innerText.replace('Hora de inicio: ', '');
-			const horaFinalTexto = tarjeta
-				.querySelector('.list-group-item:nth-child(2)')
-				.innerText.replace('Hora de final: ', '');
-			const participantesTexto = tarjeta
-				.querySelector('.list-group-item:nth-child(3)')
-				.innerText.replace('Participantes: ', '');
-			const ubicacionTexto = tarjeta
-				.querySelector('.list-group-item:nth-child(4)')
-				.innerText.replace('Ubicación: ', '');
-
-			nombreTarea.value = titulo;
-			descripcion.value = desc;
-			horaInicio.value = horaInicioTexto;
-			horaFinal.value = horaFinalTexto;
-			participantes.value = participantesTexto;
-			ubicacion.value = ubicacionTexto;
-			const modal = new bootstrap.Modal(document.getElementById('formtask'));
-			modal.show();
-		});
-		tarjeta.setAttribute('data-id', newTaskId);
-	}
-	form.reset(); 
+		window.location.reload();
 });
 document
 	.getElementById('deleteButton')
 	.addEventListener('click', async function () {
 		const taskId = selectedCard.getAttribute('data-id');
-		await deleteTask(taskId);
+		await deleteTask(taskId); 
 		const tarjeta = document.getElementById(`tarjeta-${taskId}`);
 		if (tarjeta) {
 			tarjeta.remove();
