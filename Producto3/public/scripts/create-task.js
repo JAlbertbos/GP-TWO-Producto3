@@ -52,15 +52,13 @@ async function createOrUpdateTask(
 			socket.emit('createTask', { ...taskData, day }, async (response) => {
 				if (response.success) {
 					console.log('Tarea creada con éxito');
-					const newTaskId = response.task.id; // Accede a la propiedad 'task' de la respuesta
-
-					// Actualizar el atributo 'data-id' y el ID de la tarjeta
+					const newTaskId = response.task.id;
 					if (taskCard) {
 						taskCard.setAttribute('data-id', newTaskId);
 						taskCard.id = `tarjeta-${newTaskId}`;
 					}
 					resolve(newTaskId);
-					onSuccess(true); // Se agrega esta línea
+					onSuccess(true);
 				} else {
 					validarCampos(`Error al crear tarea: ${response.error}`);
 					reject(new Error(`Error al crear tarea: ${response.error}`));
