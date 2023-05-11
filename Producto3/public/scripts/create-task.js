@@ -14,11 +14,12 @@ async function createOrUpdateTask(
 	day,
 	weekId,
 	taskCard,
-	validateTask = false,
+	validateTask = true,
 	arrayBuffer = null,
 	filename = null
 ) {
 	return new Promise((resolve, reject) => {
+
 		// Validar campos
 		if (validateTask) {
 			if (!validarCampos()) {
@@ -26,19 +27,21 @@ async function createOrUpdateTask(
 			}
 		}
 
-		// Solo añade los campos que no son null al objeto de datos de la tarea
-		const taskData = {};
-		if (name !== null) taskData.name = name;
-		if (description !== null) taskData.description = description;
-		if (startTime !== null) taskData.startTime = startTime;
-		if (endTime !== null) taskData.endTime = endTime;
-		if (participants !== null) taskData.participants = participants;
-		if (taskLocation !== null) taskData.location = taskLocation;
-		if (completed !== null) taskData.completed = completed;
-		if (day !== null) taskData.day = day;
-		if (weekId !== null) taskData.weekId = weekId;
-		if (arrayBuffer !== null) taskData.file = arrayBuffer;
-		if (filename !== null) taskData.filename = filename;
+		const taskData = {
+			id,
+			name,
+			description,
+			startTime,
+			endTime,
+			participants,
+			location: taskLocation,
+			completed,
+			day,
+			weekId,
+			file: arrayBuffer,
+			filename,
+		};
+		
 
 		const onSuccess = (isCreated) => {
 			if (isCreated) {
@@ -78,23 +81,18 @@ async function createOrUpdateTask(
 		}
 	});
 }
-// Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 
+// Función para crear una tarjeta de tarea en el DOM a partir de los datos de la tarea
 function createTaskCard(task) {
 	const tarjeta = document.createElement('div');
 	tarjeta.id = `tarjeta-${task._id}`;
 	tarjeta.classList.add('card', 'my-3', 'draggable');
 	tarjeta.setAttribute('data-id', task._id);
-	let uploadButtonOrFileLink = `
-		<button type="button" class="btn btn-link p-0 upload-tarea"><i class="bi bi-upload"> </i>Subir archivo</button>
-	`;
-
-	if (task.fileUrl) {
-		uploadButtonOrFileLink = `
-			<a href="${task.fileUrl}" target="_blank" class="btn btn-link p-0"><i class="bi bi-file-earmark-text"> Archivo adjuntado</i></a>
-		`;
-		console.log(task.fileUrl);
+	let linkedFileIndicator = '';
+    if (task.fileUrl) {
+		linkedFileIndicator = `<li class="list-group-item"><strong>Archivo vinculado:</strong> <a href="${task.fileUrl}" target="_blank">Ver archivo</a></li>`;
 	}
+
 	tarjeta.innerHTML = `
 	  <div class="card-body">
 		<div class="d-flex align-items-center justify-content-between">
@@ -107,15 +105,16 @@ function createTaskCard(task) {
 		  <li class="list-group-item"><strong>Hora de final:</strong> ${task.endTime}</li>
 		  <li class="list-group-item"><strong>Participantes:</strong> ${task.participants}</li>
 		  <li class="list-group-item"><strong>Ubicación:</strong> ${task.location}</li>
+		  ${linkedFileIndicator}
 		</ul>
 		<div class="form-check mt-3">
 		  <input class="form-check-input" type="checkbox" id="tarea-${task.name}">
 		  <label class="form-check-label" for="tarea-${task.name}">Tarea terminada</label>
 		</div>
 		<div class="mt-auto d-flex justify-content-between">
-				${uploadButtonOrFileLink}
-				<button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
-			</div>
+		  <button type="button" class="btn btn-link p-0 upload-tarea"><i class="bi bi-upload"></i></button>
+		  <button type="button" class="btn btn-link p-0 editar-tarea"><i class="bi bi-pencil-square text-primary"></i></button>
+		</div>
 	  </div>
 	`;
 
@@ -146,17 +145,10 @@ function createTaskCard(task) {
 			tarjeta.style.borderColor = '';
 			tarjeta.style.borderWidth = '';
 		}
-	
+
 		try {
 			const taskId = task._id;
 			const completed = this.checked;
-	
-			// Actualizar las propiedades del objeto task antes de llamar a createOrUpdateTask
-			task.completed = completed;
-			if (task.fileUrl) {
-				task.fileUrl = task.fileUrl;
-			}
-	
 			await createOrUpdateTask(
 				taskId,
 				task.name,
@@ -169,88 +161,85 @@ function createTaskCard(task) {
 				task.day,
 				null,
 				tarjeta,
-				false,
-				task.fileUrl ? null : undefined,
-				task.fileUrl ? null : undefined
+				false, // Pasar false para validateTask
+				arrayBuffer, // Agregar el arrayBuffer al objeto de datos de la tarea
+				filename // Agregar el nombre del archivo al objeto de datos de la tarea
 			);
 		} catch (error) {
 			console.error('Error al actualizar la tarea:', error);
 		}
 	});
+
+
+	const botonUpload =	tarjeta.querySelector('.upload-tarea');
+	botonUpload.addEventListener('click', function () {
+		// Mostrar el modal de subida de archivos
+		const uploadModalEl = document.getElementById('uploadModal');
+		const uploadModal = new bootstrap.Modal(uploadModalEl);
+		uploadModal.show();
 	
-
-	const botonUpload = tarjeta.querySelector('.upload-tarea');
-	if (botonUpload) {
-		botonUpload.addEventListener('click', function () {
-			const uploadModalEl = document.getElementById('uploadModal');
-			const uploadModal = new bootstrap.Modal(uploadModalEl);
-			uploadModal.show();
-
-			uploadModalEl
-				.querySelector('#uploadButton')
-				.addEventListener('click', async function (e) {
-					e.preventDefault();
-
-					const fileInput = document.getElementById('fileInput');
-					const file = fileInput.files[0];
-
-					if (!file) {
-						console.error('No se seleccionó ningún archivo.');
-						return;
-					}
-
-					const reader = new FileReader();
-					reader.onload = async function (event) {
-						const arrayBuffer = event.target.result;
-						const filename = file.name;
-							const filenameParts = filename.split('.');
-							const fileExtension = filenameParts[filenameParts.length - 1];
-						try {
-							const taskId = task._id;
-							await createOrUpdateTask(
-								taskId,
-								task.name,
-								task.description,
-								task.startTime,
-								task.endTime,
-								task.participants,
-								task.location,
-								task.completed,
-								task.day,
-								null,
-								tarjeta,
-								false,
-								arrayBuffer,
-								task.filename
-							);
-
-
-							socket.emit(
-								'fileUploaded',
-								{ file: arrayBuffer, filename, fileExtension },
-								(response) => {
-									if (response.success) {
-										console.log('Archivo subido con éxito: ', response.file);
-										window.location.reload();
-									} else {
-										console.error('Error al subir archivo:', response.error);
-									}
-								}
-							);
-						} catch (error) {
-							console.error('Error al actualizar la tarea:', error);
+		uploadModalEl.querySelector('#uploadButton').addEventListener('click', async function (e) {
+			e.preventDefault();
+	
+			// Recuperar el archivo seleccionado
+			const fileInput = document.getElementById('fileInput');
+			const file = fileInput.files[0];
+	
+			if (!file) {
+				console.error('No se seleccionó ningún archivo.');
+				return;
+			}
+	
+			// Leer el archivo como un ArrayBuffer
+			const reader = new FileReader();
+			reader.onload = async function (event) {
+				const arrayBuffer = event.target.result;
+				const filename = file.name;
+	
+				// Actualizar la tarea con la información del archivo
+				try {
+					const taskId = task._id;
+					await createOrUpdateTask(
+						taskId,
+						task.name,
+						task.description,
+						task.startTime,
+						task.endTime,
+						task.participants,
+						task.location,
+						task.completed,
+						task.day,
+						null,
+						tarjeta,
+						false, // Pasar false para validateTask
+						arrayBuffer, // Agregar el arrayBuffer al objeto de datos de la tarea
+						filename // Agregar el nombre del archivo al objeto de datos de la tarea
+					);
+	
+					// Emitir el evento de socket después de la actualización de la tarea
+					socket.emit('fileUploaded', { file: arrayBuffer, filename }, (response) => {
+						if (response.success) {
+							console.log('Archivo subido con éxito:', response.file);
+						} else {
+							console.error('Error al subir archivo:', response.error);
 						}
-
-						uploadModal.hide();
-						fileInput.value = '';
-					};
-					reader.readAsArrayBuffer(file);
-				});
+					});
+				} catch (error) {
+					console.error('Error al actualizar la tarea:', error);
+				}
+	
+				// Ocultar el modal y borrar la selección del input de archivo
+				uploadModal.hide();
+				fileInput.value = '';
+			};
+			reader.readAsArrayBuffer(file);
 		});
-	}
+	});
+	
 
 	return tarjeta;
 }
+
 // Función para obtener las tareas de la base de datos por ID de semana usando Socket.IO
 async function getTasks(weekId) {
 	return new Promise((resolve, reject) => {
@@ -343,22 +332,35 @@ async function drop(event) {
 		return;
 	}
 
-	// Solo envía el ID de la tarea y el nuevo día
 	const taskData = {
 		id: element.getAttribute('data-id'),
-		day: newDay,
+		name: element.querySelector('.card-title').innerText,
+		description: element.querySelector('.card-text').innerText,
+		startTime: element
+			.querySelector('.list-group-item:nth-child(1)')
+			.innerText.replace('Hora de inicio: ', ''),
+		endTime: element
+			.querySelector('.list-group-item:nth-child(2)')
+			.innerText.replace('Hora de final: ', ''),
+		participants: element
+			.querySelector('.list-group-item:nth-child(3)')
+			.innerText.replace('Participantes: ', ''),
+		location: element
+			.querySelector('.list-group-item:nth-child(4)')
+			.innerText.replace('Ubicación: ', ''),
+		completed: element.querySelector('.form-check-input').checked,
 	};
 
 	await createOrUpdateTask(
 		taskData.id,
-		null,
-		null,
-		null,
-		null,
-		null,
-		null,
-		null,
-		taskData.day,
+		taskData.name,
+		taskData.description,
+		taskData.startTime,
+		taskData.endTime,
+		taskData.participants,
+		taskData.location,
+		taskData.completed,
+		newDay,
 		weekId,
 		null,
 		false
@@ -366,6 +368,7 @@ async function drop(event) {
 
 	dropzoneAncestor.appendChild(element);
 }
+
 window.drop = drop;
 let tarjetaAEditar;
 
@@ -472,6 +475,7 @@ form.addEventListener('submit', async function (event) {
 			selectedDay,
 			weekId
 		);
+		console.log('NEWTASKID ' + newTaskId);
 
 		const task = {
 			_id: newTaskId,
@@ -603,5 +607,31 @@ document
 			bootstrap.Modal.getInstance(eliminarTareaModalEl);
 		eliminarTareaModal.hide();
 	});
+
+// Después de que se haya cargado el DOM
+document.addEventListener('DOMContentLoaded', () => {
+	// Agrega un escucha de eventos a cada tarjeta de tarea
+	const taskCards = document.querySelectorAll('.task-card');
+	taskCards.forEach((card) => {
+		// Obtén el ID de la tarea de un atributo de datos en la tarjeta
+		const taskId = card.dataset.id;
+
+		// Agrega un escucha de eventos al icono de clip en la tarjeta de tarea
+		const clipIcon = card.querySelector('.clip-icon');
+		clipIcon.addEventListener('click', () => {
+			// Abre el modal de subida de archivos cuando se hace clic en el icono de clip
+			uploadModal.show();
+		});
+
+		// Comprueba si la tarea tiene un archivo adjunto
+		socket.emit('getTask', { id: taskId }, (response) => {
+			if (response.success && response.task.fileUrl) {
+				// Si la tarea tiene un archivo adjunto, muestra el texto "Archivo adjuntado" en la tarjeta
+				const fileStatus = card.querySelector('.file-status');
+				fileStatus.textContent = 'Archivo adjuntado';
+			}
+		});
+	});
+});
 
 loadTasksFromDatabase();

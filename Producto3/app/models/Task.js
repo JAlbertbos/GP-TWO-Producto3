@@ -39,9 +39,8 @@ const TaskSchema = new mongoose.Schema({
     required: true,
   },
   fileUrl: {
-    type: String,
-    default: ''
-},
+    type: Buffer,
+  },
 });
 
 module.exports = mongoose.model("Task", TaskSchema);

@@ -73,17 +73,6 @@ body {
   margin-top: 2em;
   
 }
-.bi-pencil-square::before{
-  color: #778fb3;
-}
-.btn-link  {
-  color: #778fb3;
-  text-decoration: none;
- 
-}
-.form-check{
-  margin-bottom:1em;
-}
 .card-header {
   text-align: center;
 }
