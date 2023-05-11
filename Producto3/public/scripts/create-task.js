@@ -1,5 +1,6 @@
 const socket = io();
 let selectedCard;
+let tarjetaAEditar;
 
 // Función para crear o actualizar una tarea usando Socket.IO
 async function createOrUpdateTask(
@@ -177,7 +178,17 @@ function createTaskCard(task) {
 			console.error('Error al actualizar la tarea:', error);
 		}
 	});
-	
+
+	const botonEditar = tarjeta.querySelector('.editar-tarea');
+	botonEditar.addEventListener('click', function () {
+		tarjetaAEditar = tarjeta;
+
+		fillFormWithTaskData(task);
+
+		const formTaskModalEl = document.getElementById('formtask');
+		const formTaskModal = new bootstrap.Modal(formTaskModalEl);
+		formTaskModal.show();
+	});
 
 	const botonUpload = tarjeta.querySelector('.upload-tarea');
 	if (botonUpload) {
@@ -297,7 +308,6 @@ async function loadTasksFromDatabase() {
 		);
 	}
 }
-
 // Función para eliminar una tarea de la base de datos por ID usando Socket.IO
 async function deleteTask(taskId) {
 	return new Promise((resolve, reject) => {
@@ -367,16 +377,22 @@ async function drop(event) {
 	dropzoneAncestor.appendChild(element);
 }
 window.drop = drop;
-
-let tarjetaAEditar;
-
+// Función para llenar el formulario con los datos de la tarea que se va a editar
+function fillFormWithTaskData(task) {
+	nombreTarea.value = task.name;
+	descripcion.value = task.description;
+	horaInicio.value = task.startTime;
+	horaFinal.value = task.endTime;
+	participantes.value = task.participants;
+	ubicacion.value = task.location;
+	completed.checked = task.completed;
+}
 let selectedDay = 'zone-bottom';
 document.querySelectorAll('[data-day]').forEach((button) => {
 	button.addEventListener('click', function () {
 		selectedDay = this.getAttribute('data-day');
 	});
 });
-
 const form = document.querySelector('#formtask form');
 const nombreTarea = document.querySelector('#nombreTarea');
 const descripcion = document.querySelector('#descripcion');
@@ -421,30 +437,22 @@ function validarCampos() {
 	}
 	return true;
 }
-
 form.addEventListener('submit', async function (event) {
 	event.preventDefault();
 	if (!validarCampos()) {
 		return;
 	}
-		const modal = bootstrap.Modal.getInstance(
-			document.querySelector('#formtask')
-		);
-		const newTaskId = await createOrUpdateTask(
-			null,
-			nombreTarea.value,
-			descripcion.value,
-			horaInicio.value,
-			horaFinal.value,
-			participantes.value,
-			ubicacion.value,
-			completed.checked,
-			selectedDay,
-			weekId
-		);
-		modal.hide();
-		form.reset();
+	const modal = bootstrap.Modal.getInstance(document.querySelector('#formtask'));
+	if (tarjetaAEditar) {
+		const taskId = tarjetaAEditar.getAttribute('data-id');
+		await createOrUpdateTask(taskId,nombreTarea.value,descripcion.value,horaInicio.value,horaFinal.value,participantes.value,ubicacion.value,completed.checked,null, null, tarjetaAEditar, false);
 		window.location.reload();
+	} else {
+		await createOrUpdateTask(null,nombreTarea.value,descripcion.value,horaInicio.value,horaFinal.value,participantes.value,ubicacion.value,completed.checked,selectedDay,weekId,null,true
+		);
+		tarjetaAEditar = null;  
+	}
+	modal.hide();
 });
 document
 	.getElementById('deleteButton')
@@ -460,5 +468,4 @@ document
 			bootstrap.Modal.getInstance(eliminarTareaModalEl);
 		eliminarTareaModal.hide();
 	});
-
 loadTasksFromDatabase();
