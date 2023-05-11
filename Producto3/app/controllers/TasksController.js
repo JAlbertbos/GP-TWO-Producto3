@@ -13,16 +13,14 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Añadir un nuevo endpoint para subir archivos
+
 exports.uploadFile = upload.single('file'), async (req, res) => {
   try {
     const file = req.file;
     const task = await Task.findById(req.params.taskId);
-    
-    // Aquí necesitarías subir tu archivo a donde quieras almacenarlo 
-    // (p.ej., Amazon S3, Google Cloud Storage, etc.) y obtener la URL del archivo.
-    // Esto es solo un ejemplo y no funcionará tal cual está.
-    const fileUrl = await uploadFileToStorage(file);
+
+    // obtén la ruta del archivo
+    const fileUrl = file.path;
 
     // Añadir la URL del archivo a la tarea y guardarla
     task.fileUrl = fileUrl;
