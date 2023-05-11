@@ -71,7 +71,6 @@ async function createOrUpdateTask(
 					resolve(id);
 					onSuccess(false);
 				} else {
-					validarCampos(`Error al actualizar tarea: ${response.error}`);
 					reject(new Error(`Error al actualizar tarea: ${response.error}`));
 				}
 			});
