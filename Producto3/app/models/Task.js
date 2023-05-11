@@ -40,7 +40,8 @@ const TaskSchema = new mongoose.Schema({
   },
   fileUrl: {
     type: String,
-  },
+    default: ''
+},
 });
 
 module.exports = mongoose.model("Task", TaskSchema);
