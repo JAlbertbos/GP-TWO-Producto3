@@ -46,7 +46,7 @@ async function createOrUpdateTask(
 				window.location.reload();
 			}
 		};
-
+		
 		if (!id) {
 			socket.emit('createTask', { ...taskData, day }, async (response) => {
 				if (response.success) {
@@ -155,22 +155,22 @@ function createTaskCard(task) {
 			if (task.fileUrl) {
 				task.fileUrl = task.fileUrl;
 			}
-			//ERROR AQUI
+			
 			await createOrUpdateTask(
 				taskId,
-				task.name,
-				task.description,
-				task.startTime,
-				task.endTime,
-				task.participants,
-				task.location,
-				task.completed,
-				task.day,
 				null,
-				tarjeta,
-				false,
-				task.fileUrl ? null : undefined,
-				task.fileUrl ? null : undefined
+				null,
+				null,
+				null,
+				null,
+				null,
+				task.completed,
+				null,
+				null,
+				null,
+				null,
+				null,
+				null
 			);
 		} catch (error) {
 			console.error('Error al actualizar la tarea:', error);
@@ -348,7 +348,6 @@ async function drop(event) {
 		day: newDay,
 	};
 
-	//ERROR
 	await createOrUpdateTask(
 		taskData.id,
 		null,
@@ -536,6 +535,8 @@ form.addEventListener('submit', async function (event) {
 		selectedDay = undefined;
 		const checkbox = tarjeta.querySelector('.form-check-input');
 		checkbox.addEventListener('change', function () {
+			console.log('Checkbox change event triggered');
+
 			if (this.checked) {
 				tarjeta.classList.add('borde-verde');
 			} else {

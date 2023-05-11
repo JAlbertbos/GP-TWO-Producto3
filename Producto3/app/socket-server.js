@@ -75,8 +75,10 @@ function setupSocketIO(io) {
     
       try {
         let updatedData = data.updatedData;
+        let filename = null; // Añade esta línea para inicializar la variable filename con un valor predeterminado
+    
         if (updatedData.file) {
-          const filename = `file-${Date.now()}`; 
+          filename = `file-${Date.now()}`; 
     
           await fs.promises.writeFile(path.join(__dirname, 'uploads', filename), updatedData.file);
     
@@ -87,13 +89,12 @@ function setupSocketIO(io) {
         const updatedTask = await TasksController.updateTaskById(data.id, updatedData);
         io.sockets.emit('updatedTask', updatedTask);
         console.log('OK: Tarea actualizada');
-        callback({ success: true, file: `/uploads/${filename}` });
+        callback({ success: true, file: updatedData.fileUrl }); // Modifica esta línea para usar updatedData.fileUrl en lugar de `/uploads/${filename}`
       } catch (error) {
         console.error('Error al actualizar tarea:', error);
         callback({ success: false, error: error.message }); 
       }
     });
-    
     socket.on('deleteTask', async (data, callback) => {
       try {
         await TasksController.deleteTask(data.id);
