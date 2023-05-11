@@ -1,7 +1,6 @@
 const socket = io();
 
 //Funciones API
-
 function priorityToString(priority) {
   switch (parseInt(priority)) {
     case 1:
@@ -14,6 +13,7 @@ function priorityToString(priority) {
       return "";
   }
 }
+
 function priorityStringToValue(priorityString) {
   switch (priorityString) {
     case "Alta":
@@ -236,10 +236,7 @@ async function loadWeeks() {
   });
 }
 
-
-
 // Eventos
-
 document.addEventListener("DOMContentLoaded", async () => {
   const confirmBtn = document.getElementById("confirmButton");
   const cardForm = document.getElementById("cardForm");
@@ -275,8 +272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       genericModal.show();
   }
   
-  
-    if (valido) {
+      if (valido) {
       e.preventDefault();
       let name = document.getElementById("name").value;
       let numberWeek = document.getElementById("numberWeek").value;

@@ -76,8 +76,8 @@ async function createOrUpdateTask(
 		}
 	});
 }
-// Función para crear una tarjeta de tarea en el DOM
 
+// Función para crear una tarjeta de tarea en el DOM
 function createTaskCard(task) {
 	const tarjeta = document.createElement('div');
 	tarjeta.id = `tarjeta-${task._id}`;
