@@ -8,41 +8,35 @@ const mongoose = require('mongoose');
 const connectDB = require('./config/database');
 const http = require('http');
 const socketIO = require('socket.io');
-const multer = require('multer');
-
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function(req, file, cb) {
-    cb(null, file.originalname);
-  }
-});
-
-const upload = multer({ storage: storage });
 
 const app = express();
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.get('/', (req, res) => {
   res.sendFile(path.resolve(__dirname, '..', 'public', 'Dashboard.html'));
 });
 
+app.get('/uploads/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filepath = path.join(__dirname, 'uploads', filename);
+  if (path.extname(filename) === '.txt') {
+    res.setHeader('Content-Type', 'application/pdf');
+  }
+  res.sendFile(filepath, (err) => {
+    if (err) {
+      console.error('Error al enviar archivo:', err);
+      res.status(500).send('Error al enviar el archivo');
+    } else {
+      console.log('Archivo enviado: ', filename);
+    }
+  });
+});
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Nueva ruta POST para manejar la subida de archivos
-app.post('/upload', upload.single('file'), (req, res) => {
-  // Comprueba si el archivo se subió correctamente
-  if (req.file) {
-    // Si se subió correctamente, envía una respuesta con el nombre del archivo
-    res.json({ success: true, fileName: req.file.filename });
-  } else {
-    // Si hubo un error al subir el archivo, envía una respuesta con un mensaje de error
-    res.status(500).json({ success: false, error: 'Error al subir el archivo.' });
-  }
-});
 
 const server = new ApolloServer({
   typeDefs,
@@ -69,6 +63,9 @@ async function startServer() {
       console.error("Error de conexión a MongoDB:", error);
     });
 }
+
+const tasksRoutes = require('./routes/tasksRoutes');
+app.use(tasksRoutes);
 
 startServer();
 

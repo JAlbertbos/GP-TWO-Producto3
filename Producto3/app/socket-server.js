@@ -1,5 +1,7 @@
 const WeeksController = require('./controllers/WeeksController');
 const TasksController = require('./controllers/TasksController');
+const fs = require('fs');
+const path = require('path');
 
 function setupSocketIO(io) {
   io.on('connection', (socket) => {
@@ -69,14 +71,28 @@ function setupSocketIO(io) {
     });
     
     socket.on('updateTask', async (data, callback) => {
+      console.log('Datos recibidos para actualizar tarea:', data);
+    
       try {
-        const updatedTask = await TasksController.updateTaskById(data.id, data.updatedData);
+        let updatedData = data.updatedData;
+        let filename = null; // Añade esta línea para inicializar la variable filename con un valor predeterminado
+    
+        if (updatedData.file) {
+          filename = `file-${Date.now()}`; 
+    
+          await fs.promises.writeFile(path.join(__dirname, 'uploads', filename), updatedData.file);
+    
+          console.log('OK: Archivo subido');
+          updatedData.fileUrl = `/uploads/${filename}`;
+    
+        }
+        const updatedTask = await TasksController.updateTaskById(data.id, updatedData);
         io.sockets.emit('updatedTask', updatedTask);
         console.log('OK: Tarea actualizada');
-        callback({ success: true, task: updatedTask });
+        callback({ success: true, file: updatedData.fileUrl }); // Modifica esta línea para usar updatedData.fileUrl en lugar de `/uploads/${filename}`
       } catch (error) {
         console.error('Error al actualizar tarea:', error);
-        callback({ success: false, error });
+        callback({ success: false, error: error.message }); 
       }
     });
     socket.on('deleteTask', async (data, callback) => {
@@ -90,6 +106,22 @@ function setupSocketIO(io) {
         callback({ success: false, error });
       }
     });
+
+    socket.on('fileUploaded', (data, callback) => {
+      const filename = (data.filename || `file-${Date.now()}`) + '.' + data.fileExtension;
+  
+      fs.writeFile(path.join(__dirname, 'uploads', filename), data.file, (error) => {
+          if (error) {
+              console.error('Error al subir archivo:', error);
+              callback({ success: false, error });
+          } else {
+              console.log('OK: Archivo subido');
+              callback({ success: true, file: filename });
+          }
+      });
+  });
+    
+
     socket.on('disconnect', () => {
       //console.log('Client disconnected');
     });

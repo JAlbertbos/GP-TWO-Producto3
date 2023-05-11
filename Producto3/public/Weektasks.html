@@ -118,7 +118,7 @@
     
     <div class="row">
   <div class="col-12 dropzone zone-bottom" ondragover="allowDrop(event)" ondrop="drop(event)" id="zone-bottom" data-day="zone-bottom">
-    <!-- Aquí se agregarán las tareas -->
+    <!-- Agregar las tareas -->
   </div>
   <button class="btn color-rojo2" data-bs-toggle="modal" data-bs-target="#formtask">
     <i class="bi bi-plus"></i>
@@ -157,10 +157,6 @@
           </div>
           <div class="mb-3">
             <input type="text" class="form-control" id="ubicacion" placeholder="Ubicación">
-          </div>
-          <div class="mb-3">
-            <button type="button" id="openModal">Subir archivo</button>
-            <span id="fileUploadStatus" style="display: none;">Archivo a subir: Ninguno</span>
           </div>
           <div class="modal-footer">
             <button type="submit" id="saveButton" class="btn btn-success"><i class="bi bi-check"></i></button>
@@ -261,8 +257,6 @@ aria-hidden="true">
   <script src="./bootstrap/bootstrap.bundle.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="./scripts/create-task.js" type="module"></script>
-  <script src="./scripts/create-file.js" type="module"></script>
-  
 </body>
 
 </html>
